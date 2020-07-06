@@ -9,7 +9,9 @@ var webpack = require("webpack"),
   ReloadPlugin = require("./ReloadPlugin");
 
 // load the secrets
-var alias = {};
+var alias = {
+  "sodium-native": path.resolve(__dirname, "src/js/sodium_shim.js"),
+};
 
 var secretsPath = path.join(__dirname, "secrets." + env.NODE_ENV + ".js");
 
@@ -43,6 +45,7 @@ var options = {
     path: path.join(__dirname, "build"),
     filename: "[name].bundle.js",
   },
+  node: { stream: true, crypto: "empty", Buffer: false, buffer: false },
   module: {
     rules: [
       {
@@ -113,6 +116,13 @@ var options = {
       chunks: ["background"],
     }),
     new WriteFilePlugin(),
+    new webpack.NormalModuleReplacementPlugin(
+      /hyperlog[\\\/]lib[\\\/]messages.js$/,
+      path.resolve(__dirname, "src/js/hyperlog_hack.js")
+    ),
+    new webpack.ProvidePlugin({
+      Buffer: ["buffer", "Buffer"],
+    }),
   ],
 };
 

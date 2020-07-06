@@ -2,11 +2,10 @@
   "name": "Chrome Extension Webpack",
   "options_page": "options.html",
   "background": {
-    "page": "background.html"
+    "scripts": ["background.bundle.js"]
   },
   "browser_action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon-34.png"
+    "default_popup": "popup.html"
   },
   "icons": {
     "128": "icon-128.png"
@@ -17,5 +16,7 @@
       "js": ["content.bundle.js"]
     }
   ],
-  "manifest_version": 2
+  "manifest_version": 2,
+  "permissions": ["storage"],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' http://127.0.0.1:3000/; object-src 'self'"
 }

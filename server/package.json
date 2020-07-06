@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@mattkrick/fast-rtc-swarm": "^0.4.1",
+    "@types/pubsub-js": "^1.8.0",
+    "@types/ws": "^7.2.6",
+    "pubsub-js": "^1.8.0",
+    "typescript": "^3.9.6",
+    "ws": "^7.3.0"
+  },
+  "devDependencies": {
+    "ts-node": "^8.10.2"
+  }
+}
