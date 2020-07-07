@@ -1,8 +1,8 @@
 {
-  "presets": [
-    "@babel/react"
-  ],
+  "presets": ["@babel/react", "@babel/typescript"],
   "plugins": [
-    "react-hot-loader/babel"
+    "react-hot-loader/babel",
+    "@babel/plugin-proposal-class-properties",
+    "@babel/plugin-proposal-optional-chaining"
   ]
 }

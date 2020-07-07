@@ -6,11 +6,12 @@ var webpack = require("webpack"),
   CopyWebpackPlugin = require("copy-webpack-plugin"),
   HtmlWebpackPlugin = require("html-webpack-plugin"),
   WriteFilePlugin = require("write-file-webpack-plugin"),
-  ReloadPlugin = require("./ReloadPlugin");
+  ReloadPlugin = require("./ReloadPlugin"),
+  Dotenv = require("dotenv-webpack");
 
 // load the secrets
 var alias = {
-  "sodium-native": path.resolve(__dirname, "src/js/sodium_shim.js"),
+  "sodium-native": path.resolve(__dirname, "src/js/sodium_shim_cjs.js"),
 };
 
 var secretsPath = path.join(__dirname, "secrets." + env.NODE_ENV + ".js");
@@ -37,7 +38,7 @@ var options = {
   mode: process.env.NODE_ENV || "development",
   entry: {
     popup: "./js/popup.js",
-    options: "./js/options.js",
+    options: "./js/options.ts",
     background: "./js/background.js",
     content: "./js/content.js",
   },
@@ -64,7 +65,7 @@ var options = {
         exclude: /node_modules/,
       },
       {
-        test: /\.(js|jsx)$/,
+        test: /\.(j|t)sx?$/,
         loader: "babel-loader",
         exclude: /node_modules/,
       },
@@ -74,7 +75,7 @@ var options = {
     alias: alias,
     extensions: fileExtensions
       .map((extension) => "." + extension)
-      .concat([".jsx", ".js", ".css"]),
+      .concat([".jsx", ".js", ".tsx", ".ts", ".css"]),
   },
   plugins: [
     new ReloadPlugin({
@@ -123,6 +124,7 @@ var options = {
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
     }),
+    new Dotenv(),
   ],
 };
 
