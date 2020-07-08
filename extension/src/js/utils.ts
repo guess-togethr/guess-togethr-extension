@@ -74,9 +74,11 @@ export function crc32(buf: Uint8Array) {
   return (crc ^ -1) >>> 0;
 }
 
-export function generateLobbyId() {
+export function generateLobbyId(seed?: Uint8Array) {
   const id = new Uint8Array(sodium.crypto_sign_PUBLICKEYBYTES + 4);
-  const { publicKey, privateKey } = sodium.crypto_sign_keypair();
+  const { publicKey, privateKey } = seed
+    ? sodium.crypto_sign_seed_keypair(seed)
+    : sodium.crypto_sign_keypair();
   id.set(publicKey);
   new DataView(id.buffer).setUint32(
     sodium.crypto_sign_PUBLICKEYBYTES,
