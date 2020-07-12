@@ -12,11 +12,16 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://www.geoguessr.com/*"],
       "js": ["content.bundle.js"]
     }
   ],
   "manifest_version": 2,
-  "permissions": ["storage"],
+  "permissions": [
+    "storage",
+    "webNavigation",
+    "tabs",
+    "https://www.geoguessr.com/*"
+  ],
   "content_security_policy": "script-src 'self' 'unsafe-eval' http://127.0.0.1:3000/; object-src 'self'"
 }

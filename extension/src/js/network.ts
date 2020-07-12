@@ -1,188 +1,208 @@
 import "webrtc-adapter";
-import FastRTCSwarm, { PayloadToServer } from "@mattkrick/fast-rtc-swarm";
-import FastRTCPeer from "@mattkrick/fast-rtc-peer";
-import { Duplex } from "stream";
-import pump from "pump";
-import sodium from "./sodium_shim";
-import ReconnectingWebsocket from "reconnecting-websocket";
-import { Deferred, generateLobbyId, decodeLobbyId } from "./utils";
+import sodium from "./utils/sodium_shim";
+import {
+  Deferred,
+  generateLobbyId,
+  decodeLobbyId,
+  base64ToBuffer,
+  bufferToBase64,
+} from "./utils";
 import Debug from "debug";
 
-import ram from "random-access-memory";
 import idb from "random-access-idb";
+
+import Swarm from "@geut/discovery-swarm-webrtc";
 
 const debug = Debug("network-feed");
 
 const db = idb("hypercore");
 
-type NetworkFeedOpts =
+type NetworkFeedOpts = {
+  identity?: { publicKey: string; privateKey: string };
+  onPeerMessage?: (data: any, peer: string) => void;
+  onPeerJoin?: (peer: string) => void;
+  onPeerLeave?: (peer: string) => void;
+} & (
   | {
       isServer: true;
-      publicKey: Uint8Array;
+      lobbyId?: string;
       privateKey?: Uint8Array;
-      lobbyId: string;
     }
   | {
       isServer: false;
-      publicKey: Uint8Array;
       lobbyId: string;
-    };
+    }
+);
 
-class NetworkFeed {
+export class NetworkFeed {
   private static Hypercore: any;
-  private static socket: ReconnectingWebsocket | null = null;
-  private static numUsers = 0;
-  private readonly swarm: FastRTCSwarm;
+  private readonly swarm: ReturnType<typeof Swarm>;
   private readonly hypercore: any;
   private readonly hypercoreReady = new Deferred();
+  private readonly extension: any;
+  private static readonly BATCH_SIZE = 5;
+  private static readonly simplePeerConfig = {
+    config: {
+      iceServers: [
+        {
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:global.stun.twilio.com:3478",
+          ],
+        },
+        {
+          urls: process.env.TURN_URL,
+          username: process.env.TURN_USERNAME,
+          credential: process.env.TURN_PASSWORD,
+        },
+      ],
+    },
+  };
 
   public readonly lobbyId: string;
+  public readonly isServer: boolean;
 
   private constructor(opts: NetworkFeedOpts) {
-    this.lobbyId = opts.lobbyId;
-    NetworkFeed.numUsers++;
-    if (!NetworkFeed.socket) {
-      NetworkFeed.socket = new ReconnectingWebsocket(
-        process.env.WEBSOCKET_URL!
-      );
+    const { lobbyId, publicKey, privateKey } = opts.lobbyId
+      ? {
+          lobbyId: opts.lobbyId,
+          publicKey: decodeLobbyId(opts.lobbyId),
+          privateKey: opts.isServer && opts.privateKey,
+        }
+      : generateLobbyId();
+    if (publicKey === null) {
+      throw new Error("Invalid Lobby ID");
     }
-    this.swarm = new FastRTCSwarm({
-      roomId: this.lobbyId,
-      rtcConfig: {
-        iceServers: [
-          ...FastRTCPeer.defaultICEServers,
-          {
-            urls: "stun:192.168.200.2",
-            // username: "user123",
-            // credential: "password",
-          },
-        ],
-      },
+    this.lobbyId = lobbyId;
+    this.isServer = opts.isServer;
+    this.swarm = Swarm({
+      bootstrap: [process.env.SIGNAL_URL],
+      simplePeer: NetworkFeed.simplePeerConfig,
+      stream: ({ initiator }: any) =>
+        this.hypercore.replicate(initiator, { live: true }),
     });
-    NetworkFeed.socket.addEventListener("message", this.onSocketMessage);
-    this.swarm.on("signal", this.onSignal);
-    this.swarm.on("open", this.onNewPeer);
-    this.swarm.on("error", (e) => {
-      debugger;
-    });
+    this.swarm.join(Buffer.from(publicKey));
 
     this.hypercore = NetworkFeed.Hypercore(
       (name: string) =>
         db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
-      Buffer.from(opts.publicKey),
+      Buffer.from(publicKey),
       {
         valueEncoding: "json",
         secretKey:
-          opts.isServer && opts.privateKey
-            ? Buffer.from(opts.privateKey)
-            : undefined,
+          opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
+        noiseKeypair: opts.identity && {
+          publicKey: Buffer.from(base64ToBuffer(opts.identity.publicKey)),
+          privateKey: Buffer.from(base64ToBuffer(opts.identity.privateKey)),
+        },
       }
     );
-    this.hypercore.once("ready", () => {
-      if (this.hypercore.secretKey) {
-        this.hypercore.noiseKeypair = {
-          publicKey: this.hypercore.key,
-          privateKey: this.hypercore.secretKey,
-        };
-      }
-      if (opts.isServer && !this.hypercore.writable) {
-        this.hypercoreReady.reject(new Error("No existing hypercore found"));
-      } else {
-        this.hypercoreReady.resolve();
-      }
+    this.hypercore.once("ready", this.onHypercoreReady);
+    opts.onPeerJoin &&
+      this.hypercore.on("peer-open", (peer: any) => {
+        peer.publicKeyString = bufferToBase64(peer.publicKey);
+        opts.onPeerJoin!(peer.publicKeyString);
+      });
+    opts.onPeerLeave &&
+      this.hypercore.on("peer-remove", (peer: any) => {
+        opts.onPeerLeave!(peer.publicKeyString);
+      });
+    this.extension = this.hypercore.registerExtension("ggt", {
+      encoding: "json",
+      onmessage:
+        opts.onPeerMessage &&
+        ((data: any, peer: any) =>
+          opts.onPeerMessage!(data, peer.publicKeyString)),
     });
   }
 
   public destroy() {
     debug("destroying");
     this.hypercore.close();
-    this.swarm.off("signal", this.onSignal);
-    this.swarm.off("open", this.onNewPeer);
-    NetworkFeed.socket?.removeEventListener("message", this.onSocketMessage);
-    if (--NetworkFeed.numUsers === 0) {
-      NetworkFeed.socket?.close();
-      NetworkFeed.socket = null;
-    }
+    this.swarm.close();
   }
 
-  private onSocketMessage = ({ data }: any) => {
-    debug("socket message received", data);
-    this.swarm.dispatch(JSON.parse(data));
-  };
+  public get peers() {
+    return this.hypercore.peers.map((p: any) => p.publicKeyString);
+  }
 
-  private onSignal = (signal: PayloadToServer) => {
-    debug("sending signalling data", signal);
-    NetworkFeed.socket!.send(JSON.stringify(signal));
-  };
+  public get identity(): { publicKey: string; privateKey: string } {
+    return {
+      publicKey: bufferToBase64(this.hypercore.noiseKeypair.publicKey),
+      privateKey: bufferToBase64(this.hypercore.noiseKeypair.privateKey),
+    };
+  }
 
-  private onNewPeer = async (peer: FastRTCPeer) => {
-    debug("new peer connected", peer);
-    await this.hypercoreReady.promise;
-    (peer as any).dataChannel.binaryType = "arraybuffer";
-    const stream = new Duplex({
-      write: (chunk, encoding, cb) => {
-        try {
-          // Occasionally sending will fail when closing
-          peer.send(chunk);
-        } catch (e) {
-          debug("peer send failed");
-        }
-        cb();
-      },
-      read: () => {},
-    });
-    peer.on("data", (d) => {
-      if (stream.destroyed) {
-        debugger;
-      } else {
-        stream.push(Buffer.from(d));
-      }
-    });
-    peer.on("close", () => {
-      debug("peer closed", peer);
-      stream.destroy();
-    });
-    pump(
-      stream,
-      this.hypercore.replicate(!peer["isOfferer"], { live: true }),
-      stream
+  public get length() {
+    return this.hypercore.length;
+  }
+
+  public writeToFeed(data: any) {
+    return new Promise<number>((resolve, reject) =>
+      this.hypercore.append(data, (err: any, seq: number) =>
+        err ? reject(err) : resolve(seq)
+      )
     );
-  };
-
-  public static async createNew(
-    opts?: ReturnType<typeof generateLobbyId>
-  ): Promise<NetworkFeed> {
-    await sodium.ready;
-    NetworkFeed.Hypercore = (await import("hypercore")).default;
-
-    const feed = new NetworkFeed({
-      ...(opts || generateLobbyId()),
-      isServer: true,
-    });
-    await feed.hypercoreReady.promise;
-    return feed;
   }
 
-  public static async loadExisting(
-    lobbyId: string,
-    isServer: boolean
-  ): Promise<NetworkFeed> {
+  public broadcast(data: any) {
+    this.extension.broadcast(data);
+  }
+
+  public sendToPeer(data: any, peer: string) {
+    this.extension.send(
+      data,
+      this.peers.find((p: any) => p.publicKeyString === peer)
+    );
+  }
+
+  public onLatestValue(
+    handler: (data: { seq: number; data: any }) => void,
+    start: number = 0
+  ) {
+    this.hypercore
+      .createReadStream({ live: true, start })
+      .on("data", (data: any) => handler({ data, seq: start++ }));
+  }
+
+  public async *getLatestValues() {
+    for (
+      let end = this.hypercore.length;
+      end > 0;
+      end -= NetworkFeed.BATCH_SIZE
+    ) {
+      const batch: any[] = await new Promise((res, rej) =>
+        this.hypercore.getBatch(
+          Math.max(0, end - NetworkFeed.BATCH_SIZE),
+          end,
+          (err: any, data: any) => (err ? rej(err) : res(data))
+        )
+      );
+      for (const [seq, data] of batch.reverse().entries()) {
+        yield { seq: end - seq - 1, data };
+      }
+    }
+  }
+
+  private readonly onHypercoreReady = () => {
+    if (this.isServer && !this.hypercore.writable) {
+      this.hypercoreReady.reject(new Error("No existing hypercore found"));
+    } else {
+      this.hypercoreReady.resolve();
+    }
+  };
+
+  public static async create(opts: NetworkFeedOpts): Promise<NetworkFeed> {
     await sodium.ready;
     NetworkFeed.Hypercore = (await import("hypercore")).default;
 
-    const publicKey = decodeLobbyId(lobbyId);
-    if (!publicKey) {
-      throw new Error("Invalid Lobby ID");
-    }
-
-    const feed = new NetworkFeed({ publicKey, isServer, lobbyId });
+    const feed = new NetworkFeed(opts);
     await feed.hypercoreReady.promise;
     return feed;
   }
 }
 
-export const createNewFeed = () => NetworkFeed.createNew();
-export const loadExistingFeed = NetworkFeed.loadExisting;
+export const createFeed = NetworkFeed.create;
 
 export async function getTestLobby(isServer: boolean) {
   if (process.env.NODE_ENV !== "development") {
@@ -192,7 +212,9 @@ export async function getTestLobby(isServer: boolean) {
   await sodium.ready;
 
   const opts = generateLobbyId(new Uint8Array(sodium.crypto_sign_SEEDBYTES));
-  return isServer
-    ? NetworkFeed.createNew(opts)
-    : NetworkFeed.loadExisting(opts.lobbyId, false);
+  return NetworkFeed.create({
+    isServer,
+    lobbyId: opts.lobbyId,
+    privateKey: isServer ? opts.privateKey : undefined,
+  });
 }

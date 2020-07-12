@@ -5,12 +5,35 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug webpack",
+      "program": "${workspaceFolder}/utils/webserver.js",
+      "request": "launch",
+      "type": "node",
+      "runtimeArgs": ["-r", "ts-node/register"]
+    },
+    {
       "type": "edge",
       "request": "launch",
       "name": "Launch Edge against localhost",
-      "url": "https://cspvalidator.org/",
+      "url": "http://192.168.200.1:3000/options.html",
       "webRoot": "${workspaceFolder}",
+      // "userDataDir": "${workspaceFolder}\\.vscode\\EdgeData",
       "runtimeArgs": ["--load-extension=${workspaceFolder}\\build"]
     }
+    // {
+    //   "type": "chrome",
+    //   "request": "launch",
+    //   "name": "Launch Chrome against localhost",
+    //   // "url": "http://192.168.200.1:3000/options.html",
+    //   "webRoot": "${workspaceFolder}",
+    //   "userDataDir": "${workspaceFolder}\\.vscode\\ChromeData",
+    //   "runtimeExecutable": "C:\\Program Files\\Google\\Chrome Dev\\Application\\chrome.exe",
+    //   "runtimeArgs": [
+    //     // "--load-extension=${workspaceFolder}\\build",
+    //     "--enable-logging",
+    //     "--v=1"
+    //     // "--vmodule=*/webrtc/*=4,*/libjingle/*=4"
+    //   ]
+    // }
   ]
 }

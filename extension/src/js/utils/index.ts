@@ -1,6 +1,6 @@
 import sodium from "./sodium_shim";
 
-function bufferToBase64(buffer: Uint8Array) {
+export function bufferToBase64(buffer: Uint8Array) {
   var binary = "";
   var bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   var len = bytes.byteLength;
@@ -10,7 +10,7 @@ function bufferToBase64(buffer: Uint8Array) {
   return btoa(binary).replace(/\//g, "_").replace(/\+/g, "-");
 }
 
-function base64ToBuffer(base64: string) {
+export function base64ToBuffer(base64: string) {
   return Uint8Array.from(
     atob(base64.replace(/\-/g, "+").replace(/_/g, "/")),
     (c) => c.charCodeAt(0)

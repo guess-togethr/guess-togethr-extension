@@ -11,7 +11,8 @@ var webpack = require("webpack"),
 
 // load the secrets
 var alias = {
-  "sodium-native": path.resolve(__dirname, "src/js/sodium_shim_cjs.js"),
+  "sodium-native": path.resolve(__dirname, "src/js/utils/sodium_shim_cjs.js"),
+  crypto: path.resolve(__dirname, "src/js/utils/crypto_shim.js"),
 };
 
 var secretsPath = path.join(__dirname, "secrets." + env.NODE_ENV + ".js");
@@ -39,8 +40,8 @@ var options = {
   entry: {
     popup: "./js/popup.js",
     options: "./js/options.ts",
-    background: "./js/background.js",
-    content: "./js/content.js",
+    background: "./js/background.ts",
+    content: "./js/content.tsx",
   },
   output: {
     path: path.join(__dirname, "build"),
@@ -76,6 +77,11 @@ var options = {
     extensions: fileExtensions
       .map((extension) => "." + extension)
       .concat([".jsx", ".js", ".tsx", ".ts", ".css"]),
+  },
+  resolveLoader: {
+    alias: {
+      "schema-loader": path.resolve(__dirname, "utils/schema-loader.ts"),
+    },
   },
   plugins: [
     new ReloadPlugin({

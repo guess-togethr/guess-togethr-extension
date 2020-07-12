@@ -1,4 +1,4 @@
-import { getTestLobby, createNewFeed, loadExistingFeed } from "./network";
+import { getTestLobby, createFeed } from "./network";
 
 localStorage.debug = "hypercore-protocol network-feed";
 
@@ -6,11 +6,11 @@ const url = new URL(window.location.href);
 const role = url.searchParams.get("role");
 const lobbyId = url.searchParams.get("lobby") || undefined;
 
-(lobbyId
-  ? loadExistingFeed(lobbyId, false)
-  : role
+(role
   ? getTestLobby(role === "server")
-  : createNewFeed()
+  : lobbyId
+  ? createFeed({ isServer: false, lobbyId })
+  : createFeed({ isServer: true })
 ).then((f) => {
   (window as any).f = f;
   !lobbyId &&

@@ -9,7 +9,8 @@ var WebpackDevServer = require("webpack-dev-server"),
 // Not setting it for content scripts or scripts injected into client
 // pages causes webpack to fetch from a relative path.
 
-config.output.publicPath = `http://192.168.200.1:${env.PORT}/`;
+const host = "127.0.0.1";
+config.output.publicPath = `http://${host}:${env.PORT}/`;
 
 // Replace the manifest transformer so the new content security policy allows
 // the public path.
@@ -61,7 +62,7 @@ var server = new WebpackDevServer(compiler, {
     "Access-Control-Allow-Origin": "*",
   },
   disableHostCheck: true,
-  host: "192.168.200.1",
+  host,
   transportMode: "ws",
   writeToDisk: true,
 });
