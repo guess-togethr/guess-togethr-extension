@@ -8,6 +8,7 @@ import App from "./app";
 import { store } from "./store";
 import { setUser } from "./store/user";
 import { browser } from "webextension-polyfill-ts";
+import { remoteStoreWrapper } from "./store/backgroundStore";
 
 const debug = Debug("content");
 
@@ -28,14 +29,19 @@ async function getUserId() {
 obj.onUrlChange(Comlink.proxy(getUserId));
 getUserId();
 
+const link = document.createElement("link");
+link.rel = "stylesheet";
+link.href =
+  "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap";
+document.head.appendChild(link);
+
 (async function dooo() {
-  (await obj.loadLobby("fff")).doit();
+  const store = await remoteStoreWrapper(await obj.getStore());
+  const toolbarDiv = document.createElement("div");
+  Array.from(document.getElementsByTagName("header"))
+    .find((e) => e.classList.contains("header"))
+    ?.children[1]?.children[0]?.prepend(toolbarDiv);
+  toolbarDiv.className = "header__item";
+
+  ReactDOM.render(<App backgroundStore={store} />, toolbarDiv);
 })();
-
-const toolbarDiv = document.createElement("div");
-Array.from(document.getElementsByTagName("header"))
-  .find((e) => e.classList.contains("header"))
-  ?.children[1]?.children[0]?.prepend(toolbarDiv);
-toolbarDiv.className = "header__item";
-
-ReactDOM.render(<App />, toolbarDiv);

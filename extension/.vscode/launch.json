@@ -15,7 +15,8 @@
       "type": "edge",
       "request": "launch",
       "name": "Launch Edge against localhost",
-      "url": "http://192.168.200.1:3000/options.html",
+      // "url": "http://192.168.200.1:3000/options.html",
+      "url": "https://www.geoguessr.com",
       "webRoot": "${workspaceFolder}",
       // "userDataDir": "${workspaceFolder}\\.vscode\\EdgeData",
       "runtimeArgs": ["--load-extension=${workspaceFolder}\\build"]

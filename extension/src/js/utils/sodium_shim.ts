@@ -9,7 +9,7 @@ type ShimmedFunctions =
 type ShimmedLengthFunctions = "crypto_generichash" | "randombytes_buf";
 
 type Writeable<T> = { -readonly [P in keyof T]: T[P] };
-type ExtendedSodium = Writeable<
+export type ExtendedSodium = Writeable<
   Omit<typeof sodium, "crypto_kx_keypair" | ShimmedFunctions>
 > &
   {

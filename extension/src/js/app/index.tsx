@@ -1,14 +1,41 @@
 import React from "react";
 import { store } from "../store";
-import { Provider } from "react-redux";
-import { createPortal } from "react-dom";
+import {
+  Provider,
+  createStoreHook,
+  createSelectorHook,
+  createDispatchHook,
+  useSelector,
+} from "react-redux";
 import Toolbar from "./Toolbar";
+import { Store, Action, AnyAction, Dispatch } from "@reduxjs/toolkit";
+import { BackgroundRootState } from "../store/backgroundStore";
 
-const toolbarDiv = document.createElement("div");
+const BackgroundStoreContext: any = React.createContext(null);
 
-const App = () => (
-  <Provider store={store}>
-    <Toolbar />
+export const useBackgroundStore: <A extends Action = AnyAction>() => Store<
+  BackgroundRootState,
+  A
+> = createStoreHook(BackgroundStoreContext);
+
+export const useBackgroundSelector: <TSelected>(
+  selector: (state: BackgroundRootState) => TSelected,
+  equalityFn?: (left: TSelected, right: TSelected) => boolean
+) => TSelected = createSelectorHook(BackgroundStoreContext);
+
+export const useBackgroundDispatch: <A extends Action = AnyAction>() => Dispatch<
+  A
+> = createDispatchHook(BackgroundStoreContext);
+
+interface Props {
+  backgroundStore: Store;
+}
+
+const App = ({ backgroundStore }: Props) => (
+  <Provider store={backgroundStore} context={BackgroundStoreContext}>
+    <Provider store={store}>
+      <Toolbar />
+    </Provider>
   </Provider>
 );
 

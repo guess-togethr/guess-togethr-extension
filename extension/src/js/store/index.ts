@@ -3,7 +3,6 @@ import {
   combineReducers,
   getDefaultMiddleware,
 } from "@reduxjs/toolkit";
-import allLobbies from "./allLobbies";
 import user from "./user";
 import {
   persistReducer,
@@ -18,24 +17,13 @@ import {
 import { syncStorage } from "redux-persist-webextension-storage";
 
 const reducer = combineReducers({
-  allLobbies: persistReducer(
-    { key: "ggt-lobbies", storage: syncStorage },
-    allLobbies
-  ),
   user,
 });
 
 export type RootState = ReturnType<typeof reducer>;
 
 const store = configureStore({
-  reducer: reducer,
-  middleware: getDefaultMiddleware({
-    serializableCheck: {
-      ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-    },
-  }),
+  reducer,
 });
-
-persistStore(store);
 
 export { store };

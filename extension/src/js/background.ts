@@ -2,49 +2,28 @@ import * as Comlink from "comlink";
 import { createBackgroundEndpoint, isMessagePort } from "comlink-extension";
 import Debug from "debug";
 import { browser } from "webextension-polyfill-ts";
-import { validateClientMessage, validateServerMessage } from "./protocol";
-import { configureStore, getDefaultMiddleware } from "@reduxjs/toolkit";
-import allLobbies, { lobbySelector, setMostRecent } from "./store/allLobbies";
-import {
-  persistReducer,
-  persistStore,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from "redux-persist";
-import { syncStorage } from "redux-persist-webextension-storage";
+import { createStore, makeTabAwareStore } from "./store/backgroundStore";
+import { Store } from "@reduxjs/toolkit";
+import { initializeNetworking } from "./network";
 
 const debug = Debug("background");
-
-const store = configureStore({
-  reducer: persistReducer(
-    { storage: syncStorage, key: "ggt-lobbies" },
-    allLobbies
-  ),
-  middleware: getDefaultMiddleware({
-    serializableCheck: {
-      ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-    },
-  }),
-});
-persistStore(store);
-
-export class Lobby {
-  constructor(public readonly id: string) {}
-  public doit() {
-    console.log("DOING" + this.id);
-  }
-}
 
 export class BackgroundEndpoint {
   private readonly listeners: (() => void)[] = [];
   private static lobbyMap = new Map<string, BackgroundEndpoint>();
-  private lobby: (Lobby & Comlink.ProxyMarked) | null = null;
+  private static _store: Store = createStore();
+  private readonly store: typeof BackgroundEndpoint._store &
+    Comlink.ProxyMarked;
 
-  constructor(private readonly tabId: number) {}
+  constructor(private readonly tabId: number) {
+    this.store = Comlink.proxy(
+      makeTabAwareStore(BackgroundEndpoint._store, this.tabId)
+    );
+  }
+  public async getStore() {
+    await initializeNetworking();
+    return this.store;
+  }
   public onUrlChange(cb: () => void) {
     browser.webNavigation.onHistoryStateUpdated.addListener(cb, {
       url: [{ urlEquals: "https://www.geoguessr.com/" }],
@@ -52,42 +31,7 @@ export class BackgroundEndpoint {
     this.listeners.push(cb);
   }
 
-  public unloadLobby() {
-    if (this.lobby) {
-      BackgroundEndpoint.lobbyMap.delete(this.lobby.id);
-      this.lobby = null;
-    }
-  }
-
-  public loadLobby(lobbyId: string) {
-    if (this.lobby) {
-      this.unloadLobby();
-    }
-    if (!lobbySelector.selectById(store.getState(), lobbyId)) {
-      // throw new Error("Invalid Lobby ID");
-    }
-    const lobbyTab = BackgroundEndpoint.lobbyMap.get(lobbyId);
-    if (lobbyTab) {
-      browser.tabs.highlight({ tabs: lobbyTab.tabId });
-    } else {
-      BackgroundEndpoint.lobbyMap.set(lobbyId, this);
-    }
-    store.dispatch(setMostRecent(lobbyId));
-    this.lobby = Comlink.proxy(new Lobby(lobbyId));
-    return this.lobby;
-  }
-
-  public getAllLobbies() {
-    return lobbySelector.selectAll(store.getState());
-  }
-
-  public destroy() {
-    this.listeners.forEach((cb) =>
-      browser.webNavigation.onHistoryStateUpdated.removeListener(cb)
-    );
-    this.listeners.length = 0;
-    this.unloadLobby();
-  }
+  public destroy() {}
 }
 
 // const tabMap = new Map<number, BackgroundEndpoint>();

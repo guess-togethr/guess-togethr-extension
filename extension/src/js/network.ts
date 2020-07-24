@@ -1,5 +1,4 @@
 import "webrtc-adapter";
-import sodium from "./utils/sodium_shim";
 import {
   Deferred,
   generateLobbyId,
@@ -12,12 +11,16 @@ import Debug from "debug";
 import idb from "random-access-idb";
 
 import Swarm from "@geut/discovery-swarm-webrtc";
+import type { ExtendedSodium } from "./utils/sodium_shim";
 
 const debug = Debug("network-feed");
 
 const db = idb("hypercore");
 
-type NetworkFeedOpts = {
+let hypercore: any;
+let sodium: ExtendedSodium;
+
+export type NetworkFeedOpts = {
   identity?: { publicKey: string; privateKey: string };
   onPeerMessage?: (data: any, peer: string) => void;
   onPeerJoin?: (peer: string) => void;
@@ -35,11 +38,11 @@ type NetworkFeedOpts = {
 );
 
 export class NetworkFeed {
-  private static Hypercore: any;
   private readonly swarm: ReturnType<typeof Swarm>;
   private readonly hypercore: any;
   private readonly hypercoreReady = new Deferred();
   private readonly extension: any;
+  private readonly publicKey: Buffer;
   private static readonly BATCH_SIZE = 5;
   private static readonly simplePeerConfig = {
     config: {
@@ -62,7 +65,7 @@ export class NetworkFeed {
   public readonly lobbyId: string;
   public readonly isServer: boolean;
 
-  private constructor(opts: NetworkFeedOpts) {
+  constructor(opts: NetworkFeedOpts) {
     const { lobbyId, publicKey, privateKey } = opts.lobbyId
       ? {
           lobbyId: opts.lobbyId,
@@ -73,17 +76,19 @@ export class NetworkFeed {
     if (publicKey === null) {
       throw new Error("Invalid Lobby ID");
     }
+
     this.lobbyId = lobbyId;
     this.isServer = opts.isServer;
+    this.publicKey = Buffer.from(publicKey);
+
     this.swarm = Swarm({
       bootstrap: [process.env.SIGNAL_URL],
       simplePeer: NetworkFeed.simplePeerConfig,
       stream: ({ initiator }: any) =>
         this.hypercore.replicate(initiator, { live: true }),
     });
-    this.swarm.join(Buffer.from(publicKey));
 
-    this.hypercore = NetworkFeed.Hypercore(
+    this.hypercore = hypercore(
       (name: string) =>
         db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
       Buffer.from(publicKey),
@@ -120,6 +125,11 @@ export class NetworkFeed {
     debug("destroying");
     this.hypercore.close();
     this.swarm.close();
+  }
+
+  public async connect() {
+    await this.hypercoreReady.promise;
+    this.swarm.join(this.publicKey);
   }
 
   public get peers() {
@@ -191,30 +201,31 @@ export class NetworkFeed {
       this.hypercoreReady.resolve();
     }
   };
-
-  public static async create(opts: NetworkFeedOpts): Promise<NetworkFeed> {
-    await sodium.ready;
-    NetworkFeed.Hypercore = (await import("hypercore")).default;
-
-    const feed = new NetworkFeed(opts);
-    await feed.hypercoreReady.promise;
-    return feed;
-  }
 }
 
-export const createFeed = NetworkFeed.create;
+export async function initializeNetworking() {
+  if (hypercore) {
+    return;
+  }
+  sodium = (await import(/* webpackMode: "eager" */ "./utils/sodium_shim"))
+    .default;
+  await sodium.ready;
+  hypercore = (await import(/* webpackMode: "eager" */ "hypercore")).default;
+}
 
 export async function getTestLobby(isServer: boolean) {
   if (process.env.NODE_ENV !== "development") {
     throw new Error("Test lobbies disabled in production!");
   }
 
-  await sodium.ready;
+  await initializeNetworking();
 
   const opts = generateLobbyId(new Uint8Array(sodium.crypto_sign_SEEDBYTES));
-  return NetworkFeed.create({
+  const feed = new NetworkFeed({
     isServer,
     lobbyId: opts.lobbyId,
     privateKey: isServer ? opts.privateKey : undefined,
   });
+  await feed.connect();
+  return feed;
 }
