@@ -1,9 +1,10 @@
 import React, { MouseEvent } from "react";
 import { useSelector } from "react-redux";
 import { userSelector } from "../store/user";
-import { useBackgroundSelector, useBackgroundDispatch } from ".";
+import { useBackgroundSelector, useBackgroundDispatch } from "./App";
 import { Button, Menu, MenuItem } from "@material-ui/core";
-import { addLobby, lobbySelector } from "../store/backgroundStore";
+import { addLobby, savedLobbySelector } from "../store/backgroundStore";
+import Join from "./Join";
 
 const Toolbar = () => {
   const user = useSelector(userSelector);
@@ -30,13 +31,14 @@ const Toolbar = () => {
   };
 
   const lobbies = useBackgroundSelector((state) =>
-    lobbySelector.selectAll(state)
+    savedLobbySelector.selectAll(state)
   );
 
   console.log(lobbies);
 
   return (
     <div>
+      <Join />
       <Button
         aria-controls="simple-menu"
         aria-haspopup="true"
@@ -50,6 +52,9 @@ const Toolbar = () => {
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        getContentAnchorEl={null}
       >
         <MenuItem onClick={onAdd}>Add</MenuItem>
         {lobbies.map((l) => (

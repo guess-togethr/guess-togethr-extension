@@ -1,15 +1,15 @@
-import { NetworkFeed, NetworkFeedOpts } from "./network";
-import { Store, MiddlewareAPI, AnyAction, Dispatch } from "@reduxjs/toolkit";
+import { NetworkFeed } from "./network";
+import { MiddlewareAPI, AnyAction, Dispatch } from "@reduxjs/toolkit";
 import {
   lobbySelector,
   addLobby,
   setMostRecent,
   BackgroundRootState,
-} from "./store/backgroundStore";
+} from "../store/backgroundStore";
 import { EventEmitter } from "events";
 import StrictEventEmitter from "strict-event-emitter-types";
-import { validateClientMessage } from "./protocol";
-import { UserState } from "./protocol/schema";
+import { validateClientMessage } from "../protocol";
+import { UserState } from "../protocol/schema";
 import { Patch } from "immer";
 
 const debug = require("debug")("lobby");
@@ -17,13 +17,8 @@ const debug = require("debug")("lobby");
 export type LobbyOpts =
   | {
       isServer: true;
-      lobbyId: string;
-      identity: { publicKey: string; privateKey: string };
-    }
-  | {
-      isServer: true;
-      lobbyId?: never;
-      identity?: never;
+      lobbyId?: string;
+      identity?: { publicKey: string; privateKey: string };
     }
   | {
       isServer: false;
@@ -89,9 +84,12 @@ class LobbyBase extends (EventEmitter as {
   };
 }
 
-class LobbyClient extends LobbyBase {
-  constructor(opts: LobbyOpts) {
-    super(opts);
+export class LobbyClient extends LobbyBase {
+  constructor(opts: {
+    id: string;
+    identity?: { publicKey: string; privateKey: string };
+  }) {
+    super({ isServer: false, lobbyId: opts.id, ...opts });
   }
 
   protected onPeerMessage = () => {
@@ -110,29 +108,36 @@ class LobbyClient extends LobbyBase {
   };
 }
 
-class LobbyServer extends LobbyBase {}
-
-export function createLobby(
-  store: MiddlewareAPI<Dispatch<AnyAction>, BackgroundRootState>,
-  lobbyId?: string
-): LobbyClient | LobbyServer {
-  let ret: LobbyClient | LobbyServer;
-
-  if (lobbyId) {
-    const lobbyState = lobbySelector.selectById(store.getState(), lobbyId);
-    if (lobbyState?.isServer) {
-      ret = new LobbyServer({ lobbyId, ...lobbyState });
-    } else {
-      ret = new LobbyClient({ lobbyId, isServer: false });
-    }
-  } else {
-    ret = new LobbyServer({ isServer: true });
-
-    store.dispatch(
-      addLobby({ id: ret.id, isServer: true, identity: ret.identity })
-    );
+export class LobbyServer extends LobbyBase {
+  constructor(opts?: {
+    id: string;
+    identity: { publicKey: string; privateKey: string };
+  }) {
+    super({ isServer: true, ...(opts ? { lobbyId: opts.id, ...opts } : {}) });
   }
-
-  store.dispatch(setMostRecent(ret.id));
-  return ret;
 }
+
+// export function createLobby(
+//   store: MiddlewareAPI<Dispatch<AnyAction>, BackgroundRootState>,
+//   lobbyId?: string
+// ): LobbyClient | LobbyServer {
+//   let ret: LobbyClient | LobbyServer;
+
+//   if (lobbyId) {
+//     const lobbyState = lobbySelector.selectById(store.getState(), lobbyId);
+//     if (lobbyState?.isServer) {
+//       ret = new LobbyServer({ lobbyId, ...lobbyState });
+//     } else {
+//       ret = new LobbyClient({ lobbyId, isServer: false });
+//     }
+//   } else {
+//     ret = new LobbyServer({ isServer: true });
+
+//     store.dispatch(
+//       addLobby({ id: ret.id, isServer: true, identity: ret.identity })
+//     );
+//   }
+
+//   store.dispatch(setMostRecent(ret.id));
+//   return ret;
+// }

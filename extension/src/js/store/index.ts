@@ -1,23 +1,17 @@
 import {
   configureStore,
   combineReducers,
-  getDefaultMiddleware,
+  Reducer,
+  createNextState,
 } from "@reduxjs/toolkit";
 import user from "./user";
-import {
-  persistReducer,
-  persistStore,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from "redux-persist";
-import { syncStorage } from "redux-persist-webextension-storage";
+import lobby from "./lobby";
+import { RemoteBackgroundEndpoint } from "../content/content";
+import { lobbyMiddleware } from "./lobby";
 
 const reducer = combineReducers({
   user,
+  lobby,
 });
 
 export type RootState = ReturnType<typeof reducer>;
@@ -25,5 +19,15 @@ export type RootState = ReturnType<typeof reducer>;
 const store = configureStore({
   reducer,
 });
+
+export function createStore(backgroundEndpoint: RemoteBackgroundEndpoint) {
+  return configureStore({
+    reducer,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        thunk: { extraArgument: backgroundEndpoint },
+      }).concat(lobbyMiddleware),
+  });
+}
 
 export { store };

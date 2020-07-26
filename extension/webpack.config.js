@@ -40,8 +40,8 @@ var options = {
   entry: {
     popup: "./js/popup.js",
     options: "./js/options.ts",
-    background: "./js/background.ts",
-    content: "./js/content.tsx",
+    background: "./js/background/background.ts",
+    content: "./js/content/content.tsx",
   },
   output: {
     path: path.join(__dirname, "build"),

@@ -3,11 +3,8 @@ import {
   createEntityAdapter,
   PayloadAction,
   configureStore,
-  getDefaultMiddleware,
   createNextState,
   combineReducers,
-  Store,
-  AnyAction,
   Middleware,
 } from "@reduxjs/toolkit";
 import {
@@ -23,10 +20,8 @@ import {
 } from "redux-persist";
 import { syncStorage } from "redux-persist-webextension-storage";
 import { browser } from "webextension-polyfill-ts";
-import { Remote, proxy } from "comlink";
-import { createLobby } from "../lobby";
 
-interface Lobby {
+export interface SavedLobby {
   id: string;
   name?: string;
   isServer: boolean;
@@ -34,56 +29,59 @@ interface Lobby {
   tabId?: number;
 }
 
-const lobbyAdapter = createEntityAdapter<Lobby>();
-const lobbySelector = lobbyAdapter.getSelectors<BackgroundRootState>(
+const savedLobbyAdapter = createEntityAdapter<SavedLobby>();
+const savedLobbySelector = savedLobbyAdapter.getSelectors<BackgroundRootState>(
   (state) => state.allLobbies
 );
-const lobbyLocalSelector = lobbyAdapter.getSelectors();
+const savedLobbyLocalSelector = savedLobbyAdapter.getSelectors();
 
-const allLobbies = createSlice({
-  name: "all-lobbies",
-  initialState: lobbyAdapter.getInitialState(),
+const savedLobbies = createSlice({
+  name: "savedLobbies",
+  initialState: savedLobbyAdapter.getInitialState(),
   reducers: {
-    addLobby: lobbyAdapter.addOne,
-    removeLobby: lobbyAdapter.removeOne,
+    addLobby: savedLobbyAdapter.addOne,
+    removeLobby: savedLobbyAdapter.removeOne,
     setMostRecent: (state, action: PayloadAction<string>) => {
-      const all = lobbyLocalSelector.selectIds(state);
+      const all = savedLobbyLocalSelector.selectIds(state);
       const target = all.indexOf(action.payload);
       if (target > 0) {
         all.splice(0, 0, ...all.splice(target, 1));
       }
     },
     joinLobby: (state, action: PayloadAction<string>) =>
-      lobbyAdapter.updateOne(state, {
+      savedLobbyAdapter.updateOne(state, {
         id: action.payload,
         changes: { tabId: (action as any).meta.tabId },
       }),
     leaveLobby: (state, action: PayloadAction<string>) =>
-      lobbyAdapter.updateOne(state, {
+      savedLobbyAdapter.updateOne(state, {
         id: action.payload,
         changes: { tabId: undefined },
       }),
   },
 });
 
-const rootReducer = combineReducers({ allLobbies: allLobbies.reducer });
+const rootReducer = combineReducers({ allLobbies: savedLobbies.reducer });
 
 export type BackgroundRootState = ReturnType<typeof rootReducer>;
 
 const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   next
 ) => (action) => {
-  if (allLobbies.actions.joinLobby.match(action)) {
-    const lobby = lobbySelector.selectById(store.getState(), action.payload);
+  if (savedLobbies.actions.joinLobby.match(action)) {
+    const lobby = savedLobbySelector.selectById(
+      store.getState(),
+      action.payload
+    );
     if (lobby?.tabId) {
       if (lobby.tabId === (action as any).meta.tabId) {
         throw new Error("Double join");
       }
       browser.tabs.highlight({ tabs: lobby.tabId });
-      return;
+      return false;
     }
     next(action);
-    return proxy(createLobby(store, action.payload));
+    return true;
   }
   return next(action);
 };
@@ -96,80 +94,31 @@ function createStore() {
         key: "ggt-lobbies",
         transforms: [
           createTransform<
-            ReturnType<typeof allLobbies["reducer"]>,
-            ReturnType<typeof allLobbies["reducer"]>
+            ReturnType<typeof savedLobbies["reducer"]>,
+            ReturnType<typeof savedLobbies["reducer"]>
           >(
             (state) =>
               createNextState(state, (draft) => {
-                lobbyLocalSelector
+                savedLobbyLocalSelector
                   .selectAll(draft)
                   .forEach((e) => delete e?.tabId);
               }),
             (state) => state,
-            { whitelist: ["allLobbies"] }
+            { whitelist: ["savedLobbies"] }
           ),
         ],
       },
       rootReducer
     ),
-    middleware: getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }).concat(lobbyMiddleware),
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        serializableCheck: {
+          ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        },
+      }).concat(lobbyMiddleware),
   });
   persistStore(store);
   return store;
-}
-
-async function remoteStoreWrapper<S extends any>(
-  remoteStore: Remote<Store<S>>
-): Promise<Store<S>> {
-  const subscribers = new Set<() => void>();
-
-  let latestState = (await remoteStore.getState()) as S;
-  remoteStore.subscribe(
-    proxy(async () => {
-      latestState = (await remoteStore.getState()) as S;
-      subscribers.forEach((f) => f());
-    })
-  );
-  return {
-    dispatch: (action) => (remoteStore.dispatch(action) as unknown) as any,
-    getState: () => latestState,
-    subscribe(listener) {
-      subscribers.add(listener);
-      return () => subscribers.delete(listener);
-    },
-    replaceReducer: () => {
-      throw new Error("replaceReducer not implemented");
-    },
-    [Symbol.observable]: () => {
-      throw new Error("Symbol.observable not implemeneted");
-    },
-  };
-}
-
-function makeTabAwareStore<S, A extends AnyAction>(
-  store: Store<S, A>,
-  tabId: number
-): Store<S, A> {
-  return new Proxy(store, {
-    get(target, propKey) {
-      console.log(target, propKey);
-      if (propKey === "dispatch") {
-        return (action: AnyAction) => {
-          action.meta = Object.assign({}, action.meta, { tabId });
-          return target.dispatch(action as any);
-        };
-      } else if (propKey === "subscribe") {
-        return (listener: any) => {
-          target.subscribe(listener);
-        };
-      }
-      return (target as any)[propKey];
-    },
-  });
 }
 
 export const {
@@ -178,5 +127,5 @@ export const {
   setMostRecent,
   joinLobby,
   leaveLobby,
-} = allLobbies.actions;
-export { lobbySelector, createStore, makeTabAwareStore, remoteStoreWrapper };
+} = savedLobbies.actions;
+export { savedLobbySelector, createStore };

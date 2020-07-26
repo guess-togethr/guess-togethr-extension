@@ -1,4 +1,4 @@
-import { Patch } from "immer";
+import type { Patch } from "immer";
 
 interface User {
   /**
@@ -27,9 +27,11 @@ interface Challenge {
 }
 
 export interface LobbyState {
+  name: string;
+
   currentChallenge?: Challenge;
 
-  ownerGgId: User;
+  ownerPublicKey: string;
 
   /**
    * @uniqueItems true
@@ -48,21 +50,21 @@ export interface UserState {
   };
 }
 
-type JSONPatch =
-  | {
-      path: string[];
-      op: "add" | "replace" | "test";
-      value: any;
-    }
-  | {
-      path: string[];
-      op: "remove";
-    }
-  | {
-      path: string[];
-      op: "move" | "copy";
-      from: string[];
-    };
+// type JSONPatch =
+//   | {
+//       path: string[];
+//       op: "add" | "replace" | "test";
+//       value: any;
+//     }
+//   | {
+//       path: string[];
+//       op: "remove";
+//     }
+//   | {
+//       path: string[];
+//       op: "move" | "copy";
+//       from: string[];
+//     };
 
 /**
  * @validate

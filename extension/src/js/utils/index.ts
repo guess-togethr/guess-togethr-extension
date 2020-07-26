@@ -1,4 +1,26 @@
 import sodium from "./sodium_shim";
+import { Remote, proxy } from "comlink";
+import { Store, AnyAction, Reducer, createNextState } from "@reduxjs/toolkit";
+import type { Patch } from "immer";
+
+type PatchListener = (patches: Patch[]) => void;
+
+export function trackPatches(reducer: Reducer) {
+  const listeners = new Set<PatchListener>();
+  const newReducer: Reducer = (state, action) =>
+    createNextState(
+      state,
+      (draft) => reducer(draft, action),
+      (patches) => listeners.forEach((l) => l(patches))
+    );
+
+  const registerListener = (listener: PatchListener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+
+  return [newReducer, registerListener];
+}
 
 export function bufferToBase64(buffer: Uint8Array) {
   var binary = "";
@@ -117,4 +139,54 @@ export function generateNoiseKeypair() {
     publicKey: bufferToBase64(pair.publicKey),
     privateKey: bufferToBase64(pair.privateKey),
   };
+}
+
+export async function remoteStoreWrapper<S extends any>(
+  remoteStore: Remote<Store<S>>
+): Promise<Store<S>> {
+  const subscribers = new Set<() => void>();
+
+  let latestState = (await remoteStore.getState()) as S;
+  remoteStore.subscribe(
+    proxy(async () => {
+      latestState = (await remoteStore.getState()) as S;
+      subscribers.forEach((f) => f());
+    })
+  );
+  return {
+    dispatch: (action) => (remoteStore.dispatch(action) as unknown) as any,
+    getState: () => latestState,
+    subscribe(listener) {
+      subscribers.add(listener);
+      return () => subscribers.delete(listener);
+    },
+    replaceReducer: () => {
+      throw new Error("replaceReducer not implemented");
+    },
+    [Symbol.observable]: () => {
+      throw new Error("Symbol.observable not implemeneted");
+    },
+  };
+}
+
+export function makeTabAwareStore<S, A extends AnyAction>(
+  store: Store<S, A>,
+  tabId: number
+): Store<S, A> {
+  return new Proxy(store, {
+    get(target, propKey) {
+      console.log(target, propKey);
+      if (propKey === "dispatch") {
+        return (action: AnyAction) => {
+          action.meta = Object.assign({}, action.meta, { tabId });
+          return target.dispatch(action as any);
+        };
+      } else if (propKey === "subscribe") {
+        return (listener: any) => {
+          target.subscribe(listener);
+        };
+      }
+      return (target as any)[propKey];
+    },
+  });
 }

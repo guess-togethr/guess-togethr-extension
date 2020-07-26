@@ -5,26 +5,32 @@ import {
   decodeLobbyId,
   base64ToBuffer,
   bufferToBase64,
-} from "./utils";
+} from "../utils";
 import Debug from "debug";
 
 import idb from "random-access-idb";
 
 import Swarm from "@geut/discovery-swarm-webrtc";
-import type { ExtendedSodium } from "./utils/sodium_shim";
+import sodium from "../utils/sodium_shim";
+import { Remote, releaseProxy } from "comlink";
 
 const debug = Debug("network-feed");
 
 const db = idb("hypercore");
 
 let hypercore: any;
-let sodium: ExtendedSodium;
+
+type MaybeRemote<T> = Remote<T> | T;
+
+function releaseMaybeProxy(f?: MaybeRemote<any>) {
+  f && f[releaseProxy] && f[releaseProxy]();
+}
 
 export type NetworkFeedOpts = {
   identity?: { publicKey: string; privateKey: string };
-  onPeerMessage?: (data: any, peer: string) => void;
-  onPeerJoin?: (peer: string) => void;
-  onPeerLeave?: (peer: string) => void;
+  onPeerMessage?: MaybeRemote<(data: any, peer: string) => void>;
+  onPeerJoin?: MaybeRemote<(peer: string) => void>;
+  onPeerLeave?: MaybeRemote<(peer: string) => void>;
 } & (
   | {
       isServer: true;
@@ -43,6 +49,12 @@ export class NetworkFeed {
   private readonly hypercoreReady = new Deferred();
   private readonly extension: any;
   private readonly publicKey: Buffer;
+  private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
+  private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
+  private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
+  private readonly onLatestValueHandlers = new Set<
+    MaybeRemote<(value: { data: any; seq: number }) => void>
+  >();
   private static readonly BATCH_SIZE = 5;
   private static readonly simplePeerConfig = {
     config: {
@@ -66,65 +78,78 @@ export class NetworkFeed {
   public readonly isServer: boolean;
 
   constructor(opts: NetworkFeedOpts) {
-    const { lobbyId, publicKey, privateKey } = opts.lobbyId
-      ? {
-          lobbyId: opts.lobbyId,
-          publicKey: decodeLobbyId(opts.lobbyId),
-          privateKey: opts.isServer && opts.privateKey,
-        }
-      : generateLobbyId();
-    if (publicKey === null) {
-      throw new Error("Invalid Lobby ID");
-    }
-
-    this.lobbyId = lobbyId;
-    this.isServer = opts.isServer;
-    this.publicKey = Buffer.from(publicKey);
-
-    this.swarm = Swarm({
-      bootstrap: [process.env.SIGNAL_URL],
-      simplePeer: NetworkFeed.simplePeerConfig,
-      stream: ({ initiator }: any) =>
-        this.hypercore.replicate(initiator, { live: true }),
-    });
-
-    this.hypercore = hypercore(
-      (name: string) =>
-        db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
-      Buffer.from(publicKey),
-      {
-        valueEncoding: "json",
-        secretKey:
-          opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
-        noiseKeypair: opts.identity && {
-          publicKey: Buffer.from(base64ToBuffer(opts.identity.publicKey)),
-          privateKey: Buffer.from(base64ToBuffer(opts.identity.privateKey)),
-        },
+    try {
+      const { lobbyId, publicKey, privateKey } = opts.lobbyId
+        ? {
+            lobbyId: opts.lobbyId,
+            publicKey: decodeLobbyId(opts.lobbyId),
+            privateKey: opts.isServer && opts.privateKey,
+          }
+        : generateLobbyId();
+      if (publicKey === null) {
+        throw new Error("Invalid Lobby ID");
       }
-    );
-    this.hypercore.once("ready", this.onHypercoreReady);
-    opts.onPeerJoin &&
-      this.hypercore.on("peer-open", (peer: any) => {
-        peer.publicKeyString = bufferToBase64(peer.publicKey);
-        opts.onPeerJoin!(peer.publicKeyString);
+
+      this.lobbyId = lobbyId;
+      this.isServer = opts.isServer;
+      this.publicKey = Buffer.from(publicKey);
+      this.onPeerMessage = opts.onPeerMessage;
+      this.onPeerJoin = opts.onPeerJoin;
+      this.onPeerLeave = opts.onPeerLeave;
+
+      this.swarm = Swarm({
+        bootstrap: [process.env.SIGNAL_URL],
+        simplePeer: NetworkFeed.simplePeerConfig,
+        stream: ({ initiator }: any) =>
+          this.hypercore.replicate(initiator, { live: true }),
       });
-    opts.onPeerLeave &&
-      this.hypercore.on("peer-remove", (peer: any) => {
-        opts.onPeerLeave!(peer.publicKeyString);
+
+      this.hypercore = hypercore(
+        (name: string) =>
+          db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
+        Buffer.from(publicKey),
+        {
+          valueEncoding: "json",
+          secretKey:
+            opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
+          noiseKeypair: opts.identity && {
+            publicKey: Buffer.from(base64ToBuffer(opts.identity.publicKey)),
+            privateKey: Buffer.from(base64ToBuffer(opts.identity.privateKey)),
+          },
+        }
+      );
+      this.hypercore.once("ready", this.onHypercoreReady);
+      this.onPeerJoin &&
+        this.hypercore.on("peer-open", (peer: any) => {
+          peer.publicKeyString = bufferToBase64(peer.publicKey);
+          this.onPeerJoin!(peer.publicKeyString);
+        });
+      this.onPeerLeave &&
+        this.hypercore.on("peer-remove", (peer: any) => {
+          this.onPeerLeave!(peer.publicKeyString);
+        });
+      this.extension = this.hypercore.registerExtension("ggt", {
+        encoding: "json",
+        onmessage:
+          this.onPeerMessage &&
+          ((data: any, peer: any) =>
+            this.onPeerMessage!(data, peer.publicKeyString)),
       });
-    this.extension = this.hypercore.registerExtension("ggt", {
-      encoding: "json",
-      onmessage:
-        opts.onPeerMessage &&
-        ((data: any, peer: any) =>
-          opts.onPeerMessage!(data, peer.publicKeyString)),
-    });
+    } catch (e) {
+      this.destroy();
+      throw e;
+    }
   }
 
   public destroy() {
     debug("destroying");
-    this.hypercore.close();
-    this.swarm.close();
+    this.hypercore?.close();
+    this.swarm?.close();
+    releaseMaybeProxy(this.onPeerJoin);
+    releaseMaybeProxy(this.onPeerLeave);
+    releaseMaybeProxy(this.onPeerMessage);
+    this.onLatestValueHandlers.forEach(releaseMaybeProxy);
+    this.onLatestValueHandlers.clear();
   }
 
   public async connect() {
@@ -167,9 +192,10 @@ export class NetworkFeed {
   }
 
   public onLatestValue(
-    handler: (data: { seq: number; data: any }) => void,
+    handler: MaybeRemote<(data: { seq: number; data: any }) => void>,
     start: number = 0
   ) {
+    this.onLatestValueHandlers.add(handler);
     this.hypercore
       .createReadStream({ live: true, start })
       .on("data", (data: any) => handler({ data, seq: start++ }));
@@ -207,8 +233,6 @@ export async function initializeNetworking() {
   if (hypercore) {
     return;
   }
-  sodium = (await import(/* webpackMode: "eager" */ "./utils/sodium_shim"))
-    .default;
   await sodium.ready;
   hypercore = (await import(/* webpackMode: "eager" */ "hypercore")).default;
 }
