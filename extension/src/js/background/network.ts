@@ -109,6 +109,7 @@ export class NetworkFeed {
           db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
         Buffer.from(publicKey),
         {
+          createIfMissing: !opts.lobbyId,
           valueEncoding: "json",
           secretKey:
             opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
@@ -119,6 +120,10 @@ export class NetworkFeed {
         }
       );
       this.hypercore.once("ready", this.onHypercoreReady);
+      this.hypercore.once("error", (err: any) => {
+        this.destroy();
+        this.hypercoreReady.reject(err);
+      });
       this.onPeerJoin &&
         this.hypercore.on("peer-open", (peer: any) => {
           peer.publicKeyString = bufferToBase64(peer.publicKey);
@@ -163,8 +168,8 @@ export class NetworkFeed {
 
   public get identity(): { publicKey: string; privateKey: string } {
     return {
-      publicKey: bufferToBase64(this.hypercore.noiseKeypair.publicKey),
-      privateKey: bufferToBase64(this.hypercore.noiseKeypair.privateKey),
+      publicKey: bufferToBase64(this.hypercore.noiseKeyPair.publicKey),
+      privateKey: bufferToBase64(this.hypercore.noiseKeyPair.privateKey),
     };
   }
 

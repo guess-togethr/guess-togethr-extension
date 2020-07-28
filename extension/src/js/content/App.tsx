@@ -1,42 +1,43 @@
 import React, { useState, useEffect } from "react";
-import { store } from "../store";
-import {
-  Provider,
-  createStoreHook,
-  createSelectorHook,
-  createDispatchHook,
-} from "react-redux";
-import Toolbar from "./Toolbar";
-import { Store, Action, AnyAction, Dispatch } from "@reduxjs/toolkit";
-import { BackgroundRootState } from "../store/backgroundStore";
-import { useBackgroundEndpoint } from "./content";
+import { createStore } from "../store";
+import { Provider } from "react-redux";
+import Toolbar from "./containers/Toolbar";
+import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../utils";
+import { setUser } from "../store/user";
+import { proxy } from "comlink";
+import { browser } from "webextension-polyfill-ts";
+import { BackgroundStoreContext, useBackgroundEndpoint } from "./hooks";
 
-const BackgroundStoreContext: any = React.createContext(null);
+const backgroundEndpoint = useBackgroundEndpoint();
+const store = createStore(backgroundEndpoint);
 
-export const useBackgroundStore: <A extends Action = AnyAction>() => Store<
-  BackgroundRootState,
-  A
-> = createStoreHook(BackgroundStoreContext);
+function monitorUserLogin() {
+  async function getUserId() {
+    const response = await fetch("/api/v3/profiles/");
+    if (response.ok) {
+      const { user } = await response.json();
+      store.dispatch(setUser({ id: user.id, isPro: user.isPro }));
+    } else {
+      store.dispatch(setUser(null));
+    }
+  }
 
-export const useBackgroundSelector: <TSelected>(
-  selector: (state: BackgroundRootState) => TSelected,
-  equalityFn?: (left: TSelected, right: TSelected) => boolean
-) => TSelected = createSelectorHook(BackgroundStoreContext);
-
-export const useBackgroundDispatch: <A extends Action = AnyAction>() => Dispatch<
-  A
-> = createDispatchHook(BackgroundStoreContext);
+  backgroundEndpoint.onUrlChange(proxy(getUserId));
+  getUserId();
+}
 
 const App = () => {
   const [backgroundStore, setBackgroundStore] = useState<Store<any> | null>(
     null
   );
-  const backgroundEndpoint = useBackgroundEndpoint();
   useEffect(() => {
-    backgroundEndpoint
-      .getStore()
-      .then(remoteStoreWrapper)
+    monitorUserLogin();
+    Promise.all([backgroundEndpoint.getStore(), browser.tabs.getCurrent()])
+      .then(([store, tab]) => {
+        backgroundEndpoint.tabId = tab.id!;
+        return remoteStoreWrapper(store);
+      })
       .then(setBackgroundStore);
   }, []);
   return (

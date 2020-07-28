@@ -6,6 +6,7 @@ import {
   createNextState,
   combineReducers,
   Middleware,
+  Action,
 } from "@reduxjs/toolkit";
 import {
   persistReducer,
@@ -18,7 +19,7 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
-import { syncStorage } from "redux-persist-webextension-storage";
+import { localStorage as persistLocalStorage } from "redux-persist-webextension-storage";
 import { browser } from "webextension-polyfill-ts";
 
 export interface SavedLobby {
@@ -39,36 +40,47 @@ const savedLobbies = createSlice({
   name: "savedLobbies",
   initialState: savedLobbyAdapter.getInitialState(),
   reducers: {
-    addLobby: savedLobbyAdapter.addOne,
-    removeLobby: savedLobbyAdapter.removeOne,
-    setMostRecent: (state, action: PayloadAction<string>) => {
+    saveLobby: savedLobbyAdapter.addOne,
+    removeSavedLobby: savedLobbyAdapter.removeOne,
+    setMostRecentSavedLobby: (state, action: PayloadAction<string>) => {
       const all = savedLobbyLocalSelector.selectIds(state);
       const target = all.indexOf(action.payload);
       if (target > 0) {
         all.splice(0, 0, ...all.splice(target, 1));
       }
     },
-    joinLobby: (state, action: PayloadAction<string>) =>
+    claimSavedLobby: (state, action: PayloadAction<string>) => {
+      const existingLobby = savedLobbyLocalSelector
+        .selectAll(state)
+        .find((lobby) => lobby.tabId === (action as any).tabId);
+      if (existingLobby) {
+        delete existingLobby.tabId;
+      }
       savedLobbyAdapter.updateOne(state, {
         id: action.payload,
         changes: { tabId: (action as any).meta.tabId },
-      }),
-    leaveLobby: (state, action: PayloadAction<string>) =>
-      savedLobbyAdapter.updateOne(state, {
-        id: action.payload,
-        changes: { tabId: undefined },
-      }),
+      });
+    },
+    releaseSavedLobby: (state, action: Action) => {
+      const existingLobby = savedLobbyLocalSelector
+        .selectAll(state)
+        .find((lobby) => lobby.tabId === (action as any).tabId);
+      if (existingLobby) {
+        delete existingLobby.tabId;
+      }
+    },
   },
 });
 
 const rootReducer = combineReducers({ allLobbies: savedLobbies.reducer });
 
 export type BackgroundRootState = ReturnType<typeof rootReducer>;
+export type BackgroundDispatch = ReturnType<typeof createStore>["dispatch"];
 
 const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   next
 ) => (action) => {
-  if (savedLobbies.actions.joinLobby.match(action)) {
+  if (savedLobbies.actions.claimSavedLobby.match(action)) {
     const lobby = savedLobbySelector.selectById(
       store.getState(),
       action.payload
@@ -88,9 +100,9 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
 
 function createStore() {
   const store = configureStore({
-    reducer: persistReducer(
+    reducer: persistReducer<BackgroundRootState>(
       {
-        storage: syncStorage,
+        storage: persistLocalStorage,
         key: "ggt-lobbies",
         transforms: [
           createTransform<
@@ -122,10 +134,10 @@ function createStore() {
 }
 
 export const {
-  addLobby,
-  removeLobby,
-  setMostRecent,
-  joinLobby,
-  leaveLobby,
+  saveLobby,
+  removeSavedLobby,
+  setMostRecentSavedLobby,
+  claimSavedLobby,
+  releaseSavedLobby,
 } = savedLobbies.actions;
 export { savedLobbySelector, createStore };

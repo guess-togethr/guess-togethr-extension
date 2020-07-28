@@ -5,7 +5,9 @@ import type { Patch } from "immer";
 
 type PatchListener = (patches: Patch[]) => void;
 
-export function trackPatches(reducer: Reducer) {
+export function trackPatches(
+  reducer: Reducer
+): [Reducer, (listener: PatchListener) => () => void] {
   const listeners = new Set<PatchListener>();
   const newReducer: Reducer = (state, action) =>
     createNextState(

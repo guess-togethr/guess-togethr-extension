@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import * as Comlink from "comlink";
 import { useBackgroundSelector, useBackgroundDispatch } from "./App";
-import { lobbySelector, joinLobby, addLobby } from "../store/backgroundStore";
+import {
+  savedLobbySelector,
+  claimSavedLobby,
+  saveLobby,
+} from "../store/backgroundStore";
 import { useBackgroundEndpoint } from "./content";
 import { Dialog } from "@material-ui/core";
 
 const Join = () => {
-  const lobbies = useBackgroundSelector(lobbySelector.selectAll);
+  const lobbies = useBackgroundSelector(savedLobbySelector.selectAll);
   const backgroundEndpoint = useBackgroundEndpoint();
   const backgroundDispatch = useBackgroundDispatch();
   const [loading, setLoading] = useState<boolean | null>(null);
@@ -32,7 +36,7 @@ const Join = () => {
           });
 
           backgroundDispatch(
-            addLobby({
+            saveLobby({
               id: lobbyId,
               identity: await lobbyClient.identity,
               isServer: false,
@@ -43,7 +47,7 @@ const Join = () => {
           return;
         }
       }
-      backgroundDispatch(joinLobby(lobbyId));
+      backgroundDispatch(claimSavedLobby(lobbyId));
       lobbyClient && lobbyClient[Comlink.releaseProxy];
     })();
   }, []);

@@ -1,161 +1,192 @@
 import {
-  createSlice,
-  PayloadAction,
   combineReducers,
   createAsyncThunk,
   Middleware,
+  createSelector,
+  createAction,
+  createNextState,
+  AnyAction,
 } from "@reduxjs/toolkit";
-import { Patch, applyPatches } from "immer";
-import { LobbyState } from "../protocol/schema";
-import { trackPatches } from "../utils";
-import reduceReducers from "reduce-reducers";
-import { LobbyClient, LobbyServer } from "../content/lobby";
+import { RootState } from ".";
+import sharedState from "./sharedState";
 import { SavedLobby } from "./backgroundStore";
-import { RemoteBackgroundEndpoint } from "../content/content";
+import { LobbyServer, LobbyClient, LobbyOpts } from "./lobbyManager";
+import { RemoteBackgroundEndpoint } from "../content/hooks";
+import { User } from "../protocol/schema";
+import reduceReducers from "reduce-reducers";
+import { shallowEqual } from "react-redux";
+import localState, { joinLobby, leaveLobby } from "./localState";
 
-interface Member {
-  id: string;
-  ggId: string;
+export enum ConnectionState {
+  Disconnected,
+  Connecting,
+  GettingInitialData,
+  WaitingForHost,
+  WaitingForJoin,
+  Connected,
+  Error,
 }
 
-interface CurrentLobby {
-  id: string;
-  isServer: boolean;
-  sharedState: LobbyState | null;
-}
+const createLobby = createAsyncThunk<
+  { lobby: LobbyServer | LobbyClient; saveState: SavedLobby },
+  LobbyOpts | SavedLobby,
+  { state: any; extra: RemoteBackgroundEndpoint }
+>("lobby/createLobby", async (opts, store) => {
+  let lobby;
+  let normalizedOpts = ("id" in opts
+    ? { lobbyId: opts.id, ...opts }
+    : opts) as LobbyOpts;
 
-const sharedState = createSlice({
-  name: "sharedState",
-  initialState: null as LobbyState | null,
-  reducers: {
-    applySharedStatePatches: (state, action: PayloadAction<Patch[]>) => {
-      state && applyPatches(state, action.payload);
-    },
-    setInitialSharedState: (state, action: PayloadAction<LobbyState>) =>
-      action.payload,
-    createLobby: (
-      state,
-      action: PayloadAction<{
-        lobbyId: string;
-        ownerPublicKey: string;
-        ownerGGId: string;
-        name: string;
-      }>
-    ) => {
-      return {
-        ownerPublicKey: action.payload.ownerPublicKey,
-        name: action.payload.name,
-        users: [
-          {
-            publicKey: action.payload.ownerPublicKey,
-            ggId: action.payload.ownerGGId,
-          },
-        ],
-      };
-    },
-    addUser: (
-      state,
-      action: PayloadAction<{ publicKey: string; ggId: string }>
-    ) => {
-      state &&
-        state.users.findIndex(
-          ({ publicKey }) => publicKey === action.payload.publicKey
-        ) === -1 &&
-        state.users.push(action.payload);
-    },
-  },
-});
-
-const lobby = createSlice({
-  name: "lobby",
-  initialState: null as CurrentLobby | null,
-  reducers: {},
-  extraReducers: (builder) =>
-    builder.addCase(sharedState.actions.createLobby, (state, action) => {
-      return (
-        state || {
-          id: action.payload.lobbyId,
-          isServer: true,
-          sharedState: null,
-        }
-      );
-    }),
-});
-
-const [sharedStateReducer, registerSharedStatePatchListener] = trackPatches(
-  sharedState.reducer
-);
-
-const combinedSSReducer: typeof lobby["reducer"] = (state, action) =>
-  state === null
-    ? null
-    : combineReducers({
-        id: (s: any) => s,
-        isServer: (s: any) => s,
-        sharedState: sharedStateReducer,
-      })(state, action);
-
-const joinExistingLobby = createAsyncThunk<
-  LobbyServer | LobbyClient,
-  SavedLobby,
-  { extra: RemoteBackgroundEndpoint }
->("lobby/joinExistingLobby", async (lobby, store) => {
-  let ret;
-  if (lobby.isServer) {
-    ret = new LobbyServer(store.extra, store, lobby);
+  if (normalizedOpts.isServer) {
+    lobby = new LobbyServer(store.extra, store, normalizedOpts);
   } else {
-    ret = new LobbyClient(store.extra, store, lobby);
+    lobby = new LobbyClient(store.extra, store, normalizedOpts);
   }
+  await lobby.init();
+  if (!store.getState().user) {
+    lobby.destroy();
+    throw new Error("User logged out!");
+  }
+  const ret: SavedLobby = {
+    id: lobby.id,
+    identity: lobby.identity,
+    isServer: lobby instanceof LobbyServer,
+    name: "name" in opts ? opts.name : undefined,
+  };
 
-  await ret.init();
-  return ret;
+  store.dispatch(joinLobby(ret));
+  await lobby.connect();
+  return { lobby, saveState: ret };
 });
 
-const createNewLobby = createAsyncThunk<
-  LobbyServer | LobbyClient,
-  string | undefined,
-  { extra: RemoteBackgroundEndpoint }
->("lobby/createNewLobby", async (lobbyId, store) => {
-  const ret = lobbyId
-    ? new LobbyClient(store.extra, store, { id: lobbyId })
-    : new LobbyServer(store.extra, store);
-  await ret.init();
-  return ret;
-});
-
-const lobbyMiddleware: Middleware = (store) => {
+const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
   let lobby: LobbyServer | LobbyClient | null = null;
+
   return (next) => (action) => {
-    if (joinExistingLobby.fulfilled.match(action)) {
-      lobby = action.payload;
-    } else if (createNewLobby.fulfilled.match(action)) {
-      lobby = action.payload;
-      next(action);
-      return {
-        id: lobby.id,
-        isServer: lobby instanceof LobbyServer,
-        identity: lobby.identity,
-      };
+    if (createLobby.fulfilled.match(action)) {
+      if (lobby) {
+        lobby.destroy();
+      }
+      lobby = action.payload.lobby;
+      return;
+    } else if (leaveLobby.match(action)) {
+      lobby?.destroy();
+      lobby = null;
+    }
+    const previousConnectionState = getConnectionState(store.getState());
+    const ret = next(action);
+    if (
+      getConnectionState(store.getState()) === ConnectionState.WaitingForJoin &&
+      previousConnectionState !== ConnectionState.WaitingForJoin &&
+      lobby instanceof LobbyClient
+    ) {
+      lobby.sendJoin();
     }
 
-    return next(action);
+    return ret;
   };
 };
 
-const lobbyReducer = reduceReducers(lobby.reducer, combinedSSReducer);
+const combinedReducer = combineReducers({
+  localState,
+  sharedState,
+});
 
-export const {
-  applySharedStatePatches,
-  setInitialSharedState,
-  createLobby,
-  addUser,
-} = sharedState.actions;
+const addJoinRequest = createAction<User>("lobby/addJoinRequest");
+const approveJoinRequest = createAction<User>("lobby/approveJoinRequest");
+const denyJoinRequest = createAction<User>("lobby/denyJoinRequest");
 
-export {
-  registerSharedStatePatchListener,
-  joinExistingLobby,
-  createNewLobby,
-  lobbyMiddleware,
+function findConflictingUser(list: User[], user: User) {
+  return list.find(
+    (u) => u.ggId === user.ggId || u.publicKey === user.publicKey
+  );
+}
+
+const crossReducer = (
+  state: ReturnType<typeof combinedReducer>,
+  action: AnyAction
+) =>
+  createNextState(state, (draft) => {
+    if (!draft.localState || !draft.sharedState) {
+      return;
+    }
+    if (addJoinRequest.match(action)) {
+      if (
+        !findConflictingUser(draft.localState.joinRequests, action.payload) &&
+        !findConflictingUser(draft.sharedState.users, action.payload)
+      ) {
+        draft.localState.joinRequests.push(action.payload);
+      }
+    } else if (
+      approveJoinRequest.match(action) ||
+      denyJoinRequest.match(action)
+    ) {
+      draft.localState.joinRequests = draft.localState.joinRequests.filter(
+        (r) => !shallowEqual(r, action.payload)
+      );
+
+      approveJoinRequest.match(action) &&
+        draft.sharedState.users.push(action.payload);
+    }
+  });
+
+const lobbyReducer = reduceReducers(
+  combinedReducer,
+  crossReducer
+) as typeof combinedReducer;
+
+const getMembers = (state: RootState) => state.lobby.sharedState?.users;
+const getOnlineUsers = (state: RootState) =>
+  state.lobby.localState?.onlineUsers;
+
+const getOwner = createSelector(
+  (state: RootState) => state.lobby.sharedState?.ownerPublicKey,
+  getMembers,
+  (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
+);
+const getConnectionState = createSelector(
+  (state: RootState) => state.user?.id,
+  (state: RootState) => state.lobby.localState?.error,
+  getOnlineUsers,
+  getMembers,
+  getOwner,
+  (user, error, onlineUsers, members, owner) => {
+    if (!user || !localState) {
+      return ConnectionState.Disconnected;
+    }
+
+    if (error) {
+      return ConnectionState.Error;
+    }
+
+    if (!members || !owner) {
+      return ConnectionState.GettingInitialData;
+    }
+
+    if (!onlineUsers?.includes(owner.publicKey)) {
+      return ConnectionState.WaitingForHost;
+    }
+
+    if (members.findIndex(({ ggId }) => ggId === user) === -1) {
+      return ConnectionState.WaitingForJoin;
+    }
+
+    return ConnectionState.Connected;
+  }
+);
+
+export const lobbySelectors = {
+  getConnectionState,
+  getOnlineUsers,
+  getMembers,
+  getOwner,
 };
 
+export {
+  createLobby,
+  lobbyMiddleware,
+  addJoinRequest,
+  approveJoinRequest,
+  denyJoinRequest,
+};
 export default lobbyReducer;

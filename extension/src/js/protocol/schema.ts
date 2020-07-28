@@ -1,6 +1,6 @@
 import type { Patch } from "immer";
 
-interface User {
+export interface User {
   /**
    * @minLength 1
    */

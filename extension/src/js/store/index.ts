@@ -1,13 +1,8 @@
-import {
-  configureStore,
-  combineReducers,
-  Reducer,
-  createNextState,
-} from "@reduxjs/toolkit";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import user from "./user";
 import lobby from "./lobby";
-import { RemoteBackgroundEndpoint } from "../content/content";
 import { lobbyMiddleware } from "./lobby";
+import { RemoteBackgroundEndpoint } from "../content/hooks";
 
 const reducer = combineReducers({
   user,
@@ -15,10 +10,7 @@ const reducer = combineReducers({
 });
 
 export type RootState = ReturnType<typeof reducer>;
-
-const store = configureStore({
-  reducer,
-});
+export type AppDispatch = ReturnType<typeof createStore>["dispatch"];
 
 export function createStore(backgroundEndpoint: RemoteBackgroundEndpoint) {
   return configureStore({
@@ -26,8 +18,6 @@ export function createStore(backgroundEndpoint: RemoteBackgroundEndpoint) {
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         thunk: { extraArgument: backgroundEndpoint },
-      }).concat(lobbyMiddleware),
+      }).prepend(lobbyMiddleware),
   });
 }
-
-export { store };

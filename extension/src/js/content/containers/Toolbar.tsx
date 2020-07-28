@@ -1,10 +1,22 @@
 import React, { MouseEvent } from "react";
-import { useSelector } from "react-redux";
-import { userSelector } from "../store/user";
-import { useBackgroundSelector, useBackgroundDispatch } from "./App";
+import { useSelector, useDispatch } from "react-redux";
+import { userSelector } from "../../store/user";
 import { Button, Menu, MenuItem } from "@material-ui/core";
-import { addLobby, savedLobbySelector } from "../store/backgroundStore";
-import Join from "./Join";
+import {
+  saveLobby,
+  savedLobbySelector,
+  claimSavedLobby,
+  SavedLobby,
+  BackgroundDispatch,
+} from "../../store/backgroundStore";
+import Join from "../Join";
+import { createLobby } from "../../store/lobby";
+import { AppDispatch } from "../../store";
+import {
+  useBackgroundDispatch,
+  useBackgroundEndpoint,
+  useBackgroundSelector,
+} from "../hooks";
 
 const Toolbar = () => {
   const user = useSelector(userSelector);
@@ -18,27 +30,33 @@ const Toolbar = () => {
     setAnchorEl(null);
   };
 
-  const dispatch = useBackgroundDispatch();
+  const backgroundDispatch: BackgroundDispatch = useBackgroundDispatch();
+  const appDispatch: AppDispatch = useDispatch();
+  const backgroundEndpoint = useBackgroundEndpoint();
 
   const onAdd = () => {
-    dispatch(
-      addLobby({
-        id: Math.random().toString(),
-        isServer: false,
-        identity: { publicKey: "", privateKey: "" },
-      })
+    appDispatch(createLobby({ isServer: true, name: "yoooo" })).then((action) =>
+      backgroundDispatch(saveLobby((action.payload as any).saveState))
     );
+  };
+
+  const onLobbyClick = (lobby: SavedLobby) => {
+    backgroundDispatch(claimSavedLobby(lobby.id));
   };
 
   const lobbies = useBackgroundSelector((state) =>
     savedLobbySelector.selectAll(state)
   );
 
+  const claimedLobby = lobbies.find(
+    ({ tabId }) => tabId === backgroundEndpoint.tabId
+  );
+
   console.log(lobbies);
 
   return (
     <div>
-      <Join />
+      {/* <Join /> */}
       <Button
         aria-controls="simple-menu"
         aria-haspopup="true"
@@ -58,7 +76,9 @@ const Toolbar = () => {
       >
         <MenuItem onClick={onAdd}>Add</MenuItem>
         {lobbies.map((l) => (
-          <MenuItem key={l.id}>{l.id}</MenuItem>
+          <MenuItem key={l.id} onClick={() => onLobbyClick(l)}>
+            {l.name ?? "Unknown lobby"}
+          </MenuItem>
         ))}
       </Menu>
     </div>
