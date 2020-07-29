@@ -52,7 +52,7 @@ const savedLobbies = createSlice({
     claimSavedLobby: (state, action: PayloadAction<string>) => {
       const existingLobby = savedLobbyLocalSelector
         .selectAll(state)
-        .find((lobby) => lobby.tabId === (action as any).tabId);
+        .find((lobby) => lobby.tabId === (action as any).meta.tabId);
       if (existingLobby) {
         delete existingLobby.tabId;
       }
@@ -64,7 +64,7 @@ const savedLobbies = createSlice({
     releaseSavedLobby: (state, action: Action) => {
       const existingLobby = savedLobbyLocalSelector
         .selectAll(state)
-        .find((lobby) => lobby.tabId === (action as any).tabId);
+        .find((lobby) => lobby.tabId === (action as any).meta.tabId);
       if (existingLobby) {
         delete existingLobby.tabId;
       }

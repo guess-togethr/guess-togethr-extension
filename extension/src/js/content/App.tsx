@@ -11,7 +11,7 @@ import { BackgroundStoreContext, useBackgroundEndpoint } from "./hooks";
 const backgroundEndpoint = useBackgroundEndpoint();
 const store = createStore(backgroundEndpoint);
 
-function monitorUserLogin() {
+async function monitorUserLogin() {
   async function getUserId() {
     const response = await fetch("/api/v3/profiles/");
     if (response.ok) {
@@ -23,7 +23,7 @@ function monitorUserLogin() {
   }
 
   backgroundEndpoint.onUrlChange(proxy(getUserId));
-  getUserId();
+  await getUserId();
 }
 
 const App = () => {
@@ -31,12 +31,11 @@ const App = () => {
     null
   );
   useEffect(() => {
-    monitorUserLogin();
     Promise.all([
       backgroundEndpoint.getStore().then(remoteStoreWrapper),
-      backgroundEndpoint.getTabId(),
-    ]).then(([store, tabId]) => {
-      backgroundEndpoint.tabId = tabId;
+      backgroundEndpoint.waitForCache("tabId"),
+      monitorUserLogin(),
+    ]).then(([store]) => {
       setBackgroundStore(store);
     });
   }, []);

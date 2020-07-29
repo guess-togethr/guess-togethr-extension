@@ -2,6 +2,7 @@ import sodium from "./sodium_shim";
 import { Remote, proxy, transferHandlers } from "comlink";
 import { Store, AnyAction, Reducer, createNextState } from "@reduxjs/toolkit";
 import type { Patch } from "immer";
+import { BackgroundEndpoint } from "../background/background";
 
 type PatchListener = (patches: Patch[]) => void;
 
@@ -152,6 +153,7 @@ export async function remoteStoreWrapper<S extends any>(
   remoteStore.subscribe(
     proxy(async () => {
       latestState = (await remoteStore.getState()) as S;
+      console.log("BACKGROUND STATE", latestState);
       subscribers.forEach((f) => f());
     })
   );
@@ -238,3 +240,42 @@ const asyncIterableTransferHandler = {
 
 // Make Comlink aware of the transfer handler by adding it to its transfer handler Map
 transferHandlers.set("asyncIterable", asyncIterableTransferHandler);
+
+type NonFunctionProperties<T> = {
+  [P in keyof T]: T[P] extends Function ? never : P;
+}[keyof T];
+
+type CachedRemote<T, CachedProps extends NonFunctionProperties<T>> = Omit<
+  Remote<T>,
+  CachedProps
+> &
+  { [K in CachedProps]: T[K] } & {
+    waitForCache<P extends CachedProps>(props: ReadonlyArray<P>): Promise<void>;
+    waitForCache<P extends CachedProps>(
+      ...props: ReadonlyArray<P>
+    ): Promise<void>;
+  };
+
+export function cacheRemoteProperties<T, P extends NonFunctionProperties<T>>(
+  remote: Remote<T>
+): CachedRemote<T, P> {
+  const cache = new Map<keyof T, T[P]>();
+  return (new Proxy(remote, {
+    get: (target, prop: P | keyof T) => {
+      if (prop === "waitForCache") {
+        return (...args: ReadonlyArray<P>) =>
+          Promise.all(
+            args.map((p) =>
+              (target[p] as any).then((v: any) => cache.set(p, v))
+            )
+          );
+      }
+
+      if (cache.has(prop)) {
+        return cache.get(prop);
+      }
+
+      return target[prop];
+    },
+  }) as unknown) as CachedRemote<T, P>;
+}

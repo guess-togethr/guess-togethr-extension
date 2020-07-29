@@ -5,6 +5,7 @@ import { createLobby } from "../../store/lobby";
 import { SavedLobby } from "../../store/backgroundStore";
 import { useAppSelector } from "../hooks";
 import { leaveLobby } from "../../store/localState";
+import { List, ListItem, ListItemText } from "@material-ui/core";
 
 interface Props {
   claimedLobby: SavedLobby;
@@ -24,10 +25,20 @@ const CurrentLobby = (props: Props) => {
       appDispatch(createLobby(claimedLobby));
     }
 
-    return () => {
-      appDispatch(leaveLobby());
-    };
+    if (connectedLobbyId) {
+      return () => {
+        appDispatch(leaveLobby());
+      };
+    }
   }, [claimedLobbyId, connectedLobbyId]);
+
+  return (
+    <List>
+      <ListItem button>
+        <ListItemText primary={connectedLobby?.name ?? "LOADING"} />
+      </ListItem>
+    </List>
+  );
 };
 
 export default CurrentLobby;

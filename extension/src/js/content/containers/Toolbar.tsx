@@ -17,6 +17,7 @@ import {
   useBackgroundEndpoint,
   useBackgroundSelector,
 } from "../hooks";
+import CurrentLobby from "./CurrentLobby";
 
 const Toolbar = () => {
   const user = useSelector(userSelector);
@@ -57,13 +58,17 @@ const Toolbar = () => {
   return (
     <div>
       {/* <Join /> */}
-      <Button
-        aria-controls="simple-menu"
-        aria-haspopup="true"
-        onClick={handleClick}
-      >
-        Open Menu
-      </Button>
+      {claimedLobby ? (
+        <CurrentLobby claimedLobby={claimedLobby} />
+      ) : (
+        <Button
+          aria-controls="simple-menu"
+          aria-haspopup="true"
+          onClick={handleClick}
+        >
+          Open Menu
+        </Button>
+      )}
       <Menu
         id="simple-menu"
         anchorEl={anchorEl}

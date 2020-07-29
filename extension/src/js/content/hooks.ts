@@ -18,14 +18,13 @@ import { wrap, Remote } from "comlink";
 import { BackgroundEndpoint } from "../background/background";
 import { createEndpoint } from "comlink-extension";
 import { browser } from "webextension-polyfill-ts";
+import { cacheRemoteProperties } from "../utils";
 
-export type RemoteBackgroundEndpoint = Remote<BackgroundEndpoint> & {
-  tabId: number;
-};
+const endpoint = cacheRemoteProperties(
+  wrap<BackgroundEndpoint>(createEndpoint(browser.runtime.connect()))
+);
 
-const endpoint = wrap<BackgroundEndpoint>(
-  createEndpoint(browser.runtime.connect())
-) as RemoteBackgroundEndpoint;
+export type RemoteBackgroundEndpoint = typeof endpoint;
 
 export const useBackgroundEndpoint = () => endpoint;
 

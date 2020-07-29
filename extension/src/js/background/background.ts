@@ -19,7 +19,7 @@ export class BackgroundEndpoint {
   private static _store: Store;
   private readonly store: Store;
 
-  constructor(private readonly tabId: number) {
+  constructor(public readonly tabId: number) {
     if (!BackgroundEndpoint._store) {
       BackgroundEndpoint._store = createStore();
     }
