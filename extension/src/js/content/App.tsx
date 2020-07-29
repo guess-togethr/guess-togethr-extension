@@ -6,7 +6,6 @@ import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../utils";
 import { setUser } from "../store/user";
 import { proxy } from "comlink";
-import { browser } from "webextension-polyfill-ts";
 import { BackgroundStoreContext, useBackgroundEndpoint } from "./hooks";
 
 const backgroundEndpoint = useBackgroundEndpoint();
@@ -33,12 +32,13 @@ const App = () => {
   );
   useEffect(() => {
     monitorUserLogin();
-    Promise.all([backgroundEndpoint.getStore(), browser.tabs.getCurrent()])
-      .then(([store, tab]) => {
-        backgroundEndpoint.tabId = tab.id!;
-        return remoteStoreWrapper(store);
-      })
-      .then(setBackgroundStore);
+    Promise.all([
+      backgroundEndpoint.getStore().then(remoteStoreWrapper),
+      backgroundEndpoint.getTabId(),
+    ]).then(([store, tabId]) => {
+      backgroundEndpoint.tabId = tabId;
+      setBackgroundStore(store);
+    });
   }, []);
   return (
     backgroundStore && (

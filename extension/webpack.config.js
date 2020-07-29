@@ -38,7 +38,6 @@ var options = {
   context: path.resolve(__dirname, "src"),
   mode: process.env.NODE_ENV || "development",
   entry: {
-    popup: "./js/popup.js",
     options: "./js/options.ts",
     background: "./js/background/background.ts",
     content: "./js/content/content.tsx",
@@ -107,6 +106,9 @@ var options = {
         },
       },
     ]),
+    new CopyWebpackPlugin([{ from: "./img/icon-128.png" }], {
+      copyUnmodified: true,
+    }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, "src", "popup.html"),
       filename: "popup.html",

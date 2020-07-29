@@ -15,7 +15,7 @@ import { makeTabAwareStore } from "../utils";
 const debug = Debug("background");
 
 export class BackgroundEndpoint {
-  private readonly listeners: any[] = [];
+  private readonly urlListeners: any[] = [];
   private static _store: Store;
   private readonly store: Store;
 
@@ -32,6 +32,10 @@ export class BackgroundEndpoint {
     return Comlink.proxy(this.store);
   }
 
+  public getTabId() {
+    return this.tabId;
+  }
+
   public onUrlChange(cb: () => void) {
     const listener = ({
       tabId,
@@ -40,7 +44,7 @@ export class BackgroundEndpoint {
     browser.webNavigation.onHistoryStateUpdated.addListener(listener, {
       url: [{ urlEquals: "https://www.geoguessr.com/" }],
     });
-    this.listeners.push(listener);
+    this.urlListeners.push(() => (cb as any)[Comlink.releaseProxy]());
   }
 
   public createNetworkFeed(opts: NetworkFeedOpts) {
@@ -54,7 +58,10 @@ export class BackgroundEndpoint {
     browser.tabs.onRemoved.removeListener(this.onTabClose);
   };
 
-  public destroy() {}
+  public destroy() {
+    this.urlListeners.forEach((l) => l());
+    this.urlListeners.length = 0;
+  }
 }
 
 browser.runtime.onConnect.addListener((port) => {

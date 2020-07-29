@@ -1,6 +1,8 @@
 import { User } from "../protocol/schema";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { createLobby } from "./lobby";
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { LobbyClient, LobbyServer, LobbyOpts } from "./lobbyManager";
+import { SavedLobby } from "./backgroundStore";
+import { RemoteBackgroundEndpoint } from "../content/hooks";
 
 interface LocalState {
   id: string;
@@ -10,6 +12,38 @@ interface LocalState {
   onlineUsers: string[];
   joinRequests: User[];
 }
+
+export const createLobby = createAsyncThunk<
+  { lobby: LobbyServer | LobbyClient; saveState: SavedLobby },
+  LobbyOpts | SavedLobby,
+  { state: any; extra: RemoteBackgroundEndpoint }
+>("lobby/createLobby", async (opts, store) => {
+  let lobby;
+  let normalizedOpts = ("id" in opts
+    ? { lobbyId: opts.id, ...opts }
+    : opts) as LobbyOpts;
+
+  if (normalizedOpts.isServer) {
+    lobby = new LobbyServer(store.extra, store, normalizedOpts);
+  } else {
+    lobby = new LobbyClient(store.extra, store, normalizedOpts);
+  }
+  await lobby.init();
+  if (!store.getState().user) {
+    lobby.destroy();
+    throw new Error("User logged out!");
+  }
+  const ret: SavedLobby = {
+    id: lobby.id,
+    identity: lobby.identity,
+    isServer: lobby instanceof LobbyServer,
+    name: "name" in opts ? opts.name : undefined,
+  };
+
+  store.dispatch(joinLobby(ret));
+  await lobby.connect();
+  return { lobby, saveState: ret };
+});
 
 const localState = createSlice({
   name: "localState",

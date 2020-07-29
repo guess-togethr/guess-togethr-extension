@@ -1,5 +1,5 @@
 import sodium from "./sodium_shim";
-import { Remote, proxy } from "comlink";
+import { Remote, proxy, transferHandlers } from "comlink";
 import { Store, AnyAction, Reducer, createNextState } from "@reduxjs/toolkit";
 import type { Patch } from "immer";
 
@@ -192,3 +192,49 @@ export function makeTabAwareStore<S, A extends AnyAction>(
     },
   });
 }
+
+const asyncIterableTransferHandler = {
+  // We want to use this transfer handler for any objects that have an async iterator
+  canHandle: (obj: any): obj is any => obj && obj[Symbol.asyncIterator],
+  serialize: (iterable: any) => {
+    // Create a message channel specifically for messages for this async iterator
+    const { port1, port2 } = new MessageChannel();
+
+    const iterator = iterable[Symbol.asyncIterator]();
+
+    // Listen and forward calls onto the iterator
+    port1.onmessage = async ({ data }) => {
+      port1.postMessage(await iterator.next(data));
+    };
+
+    // Transfer the message channel to the caller's execution context
+    return [port2, [port2]] as [MessagePort, [MessagePort]];
+  },
+  deserialize: async (port: any) => {
+    // Convenience function to allow us to use async/await for messages coming down the port
+    const nextPortMessage = () =>
+      new Promise((resolve) => {
+        port.onmessage = ({ data }: any) => {
+          resolve(data);
+        };
+      });
+
+    // Construct our "proxy" iterator
+    const iterator: any = {
+      next: (value: any) => {
+        // Inform the iterator that next has been called
+        port.postMessage(value);
+        // Return a promise that will resolve with the object returned by the iterator
+        return nextPortMessage();
+      },
+    };
+
+    // Make it iterable so it can be used in for-await-of statement
+    iterator[Symbol.asyncIterator] = () => iterator;
+
+    return iterator;
+  },
+};
+
+// Make Comlink aware of the transfer handler by adding it to its transfer handler Map
+transferHandlers.set("asyncIterable", asyncIterableTransferHandler);

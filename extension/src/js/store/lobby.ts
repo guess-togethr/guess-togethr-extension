@@ -15,7 +15,7 @@ import { RemoteBackgroundEndpoint } from "../content/hooks";
 import { User } from "../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
-import localState, { joinLobby, leaveLobby } from "./localState";
+import localState, { joinLobby, leaveLobby, createLobby } from "./localState";
 
 export enum ConnectionState {
   Disconnected,
@@ -26,38 +26,6 @@ export enum ConnectionState {
   Connected,
   Error,
 }
-
-const createLobby = createAsyncThunk<
-  { lobby: LobbyServer | LobbyClient; saveState: SavedLobby },
-  LobbyOpts | SavedLobby,
-  { state: any; extra: RemoteBackgroundEndpoint }
->("lobby/createLobby", async (opts, store) => {
-  let lobby;
-  let normalizedOpts = ("id" in opts
-    ? { lobbyId: opts.id, ...opts }
-    : opts) as LobbyOpts;
-
-  if (normalizedOpts.isServer) {
-    lobby = new LobbyServer(store.extra, store, normalizedOpts);
-  } else {
-    lobby = new LobbyClient(store.extra, store, normalizedOpts);
-  }
-  await lobby.init();
-  if (!store.getState().user) {
-    lobby.destroy();
-    throw new Error("User logged out!");
-  }
-  const ret: SavedLobby = {
-    id: lobby.id,
-    identity: lobby.identity,
-    isServer: lobby instanceof LobbyServer,
-    name: "name" in opts ? opts.name : undefined,
-  };
-
-  store.dispatch(joinLobby(ret));
-  await lobby.connect();
-  return { lobby, saveState: ret };
-});
 
 const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
   let lobby: LobbyServer | LobbyClient | null = null;

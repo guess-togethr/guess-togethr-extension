@@ -113,9 +113,9 @@ export class NetworkFeed {
           valueEncoding: "json",
           secretKey:
             opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
-          noiseKeypair: opts.identity && {
+          noiseKeyPair: opts.identity && {
             publicKey: Buffer.from(base64ToBuffer(opts.identity.publicKey)),
-            privateKey: Buffer.from(base64ToBuffer(opts.identity.privateKey)),
+            secretKey: Buffer.from(base64ToBuffer(opts.identity.privateKey)),
           },
         }
       );
@@ -169,7 +169,7 @@ export class NetworkFeed {
   public get identity(): { publicKey: string; privateKey: string } {
     return {
       publicKey: bufferToBase64(this.hypercore.noiseKeyPair.publicKey),
-      privateKey: bufferToBase64(this.hypercore.noiseKeyPair.privateKey),
+      privateKey: bufferToBase64(this.hypercore.noiseKeyPair.secretKey),
     };
   }
 
