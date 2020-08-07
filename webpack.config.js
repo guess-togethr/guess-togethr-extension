@@ -1,7 +1,6 @@
 var webpack = require("webpack"),
   path = require("path"),
   fileSystem = require("fs"),
-  env = require("./utils/env"),
   CleanWebpackPlugin = require("clean-webpack-plugin").CleanWebpackPlugin,
   CopyWebpackPlugin = require("copy-webpack-plugin"),
   HtmlWebpackPlugin = require("html-webpack-plugin"),
@@ -14,8 +13,6 @@ var alias = {
   "sodium-native": path.resolve(__dirname, "src/js/utils/sodium_shim_cjs.js"),
   crypto: path.resolve(__dirname, "src/js/utils/crypto_shim.js"),
 };
-
-var secretsPath = path.join(__dirname, "secrets." + env.NODE_ENV + ".js");
 
 var fileExtensions = [
   "jpg",
@@ -30,17 +27,16 @@ var fileExtensions = [
   "woff2",
 ];
 
-if (fileSystem.existsSync(secretsPath)) {
-  alias["secrets"] = secretsPath;
-}
-
 var options = {
   context: path.resolve(__dirname, "src"),
   mode: process.env.NODE_ENV || "development",
   entry: {
     options: "./js/options.ts",
     background: "./js/background/background.ts",
-    content: "./js/content/content.tsx",
+    content: [
+      process.env.NODE_ENV === "development" && "react-devtools",
+      "./js/content/content.tsx",
+    ].filter(Boolean),
   },
   output: {
     path: path.join(__dirname, "build"),
@@ -136,7 +132,7 @@ var options = {
   ],
 };
 
-if (env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === "development") {
   options.devtool = "inline-cheap-module-source-map";
 }
 

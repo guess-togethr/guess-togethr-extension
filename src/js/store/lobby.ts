@@ -1,6 +1,5 @@
 import {
   combineReducers,
-  createAsyncThunk,
   Middleware,
   createSelector,
   createAction,
@@ -9,13 +8,11 @@ import {
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import sharedState from "./sharedState";
-import { SavedLobby } from "./backgroundStore";
-import { LobbyServer, LobbyClient, LobbyOpts } from "./lobbyManager";
-import { RemoteBackgroundEndpoint } from "../content/hooks";
+import { LobbyServer, LobbyClient } from "./lobbyManager";
 import { User } from "../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
-import localState, { joinLobby, leaveLobby, createLobby } from "./localState";
+import localState, { leaveLobby, createLobby } from "./localState";
 
 export enum ConnectionState {
   Disconnected,

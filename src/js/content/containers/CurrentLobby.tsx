@@ -11,7 +11,7 @@ interface Props {
   claimedLobby: SavedLobby;
 }
 
-const CurrentLobby = (props: Props) => {
+const CurrentLobbyContainer = (props: Props) => {
   const { claimedLobby } = props;
   const claimedLobbyId = claimedLobby.id;
 
@@ -33,12 +33,10 @@ const CurrentLobby = (props: Props) => {
   }, [claimedLobbyId, connectedLobbyId]);
 
   return (
-    <List>
-      <ListItem button>
-        <ListItemText primary={connectedLobby?.name ?? "LOADING"} />
-      </ListItem>
-    </List>
+    <ListItem button>
+      <ListItemText primary={connectedLobby?.name ?? "LOADING"} />
+    </ListItem>
   );
 };
 
-export default CurrentLobby;
+export default CurrentLobbyContainer;

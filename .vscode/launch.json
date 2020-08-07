@@ -12,6 +12,12 @@
       "runtimeArgs": ["-r", "ts-node/register"]
     },
     {
+      "name": "Debug cosmos",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/react-cosmos/bin/cosmos"
+    },
+    {
       "type": "edge",
       "request": "launch",
       "name": "Launch Edge against localhost",

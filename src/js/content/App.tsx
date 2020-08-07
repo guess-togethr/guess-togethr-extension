@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createStore } from "../store";
 import { Provider } from "react-redux";
-import Toolbar from "./containers/Toolbar";
+import ToolbarContainer from "./containers/Toolbar";
 import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../utils";
 import { setUser } from "../store/user";
@@ -43,7 +43,7 @@ const App = () => {
     backgroundStore && (
       <Provider store={backgroundStore} context={BackgroundStoreContext}>
         <Provider store={store}>
-          <Toolbar />
+          <ToolbarContainer />
         </Provider>
       </Provider>
     )
