@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-import { AppDispatch } from "../../store";
+import { AppDispatch } from "../store";
 import { useDispatch } from "react-redux";
-import { createLobby } from "../../store/lobby";
-import { SavedLobby } from "../../store/backgroundStore";
+import { createLobby } from "../store/lobby";
+import { SavedLobby } from "../../background/store";
 import { useAppSelector } from "../hooks";
-import { leaveLobby } from "../../store/localState";
+import { leaveLobby } from "../store/localState";
 import { List, ListItem, ListItemText } from "@material-ui/core";
 
 interface Props {

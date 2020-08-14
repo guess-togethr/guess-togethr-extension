@@ -1,8 +1,8 @@
-import { User } from "../protocol/schema";
+import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts } from "./lobbyManager";
-import { SavedLobby } from "./backgroundStore";
-import { RemoteBackgroundEndpoint } from "../content/hooks";
+import { SavedLobby } from "../../background/store";
+import { RemoteBackgroundEndpoint } from "../hooks";
 
 interface LocalState {
   id: string;

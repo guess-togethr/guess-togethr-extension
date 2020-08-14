@@ -2,7 +2,7 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import user from "./user";
 import lobby from "./lobby";
 import { lobbyMiddleware } from "./lobby";
-import { RemoteBackgroundEndpoint } from "../content/hooks";
+import { RemoteBackgroundEndpoint } from "../hooks";
 
 const reducer = combineReducers({
   user,

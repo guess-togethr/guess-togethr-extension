@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { LobbyState } from "../protocol/schema";
+import { LobbyState } from "../../protocol/schema";
 import { applyPatches, Patch } from "immer";
-import { trackPatches } from "../utils";
+import { trackPatches } from "../../utils";
 
 const sharedState = createSlice({
   name: "sharedState",

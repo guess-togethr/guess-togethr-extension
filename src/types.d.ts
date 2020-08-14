@@ -16,3 +16,4 @@ declare module "random-access-idb";
 declare module "@geut/discovery-swarm-webrtc";
 declare module "redux-persist-webextension-storage";
 declare module "!schema-loader!*";
+declare module "*.svg";

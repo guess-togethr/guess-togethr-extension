@@ -74,8 +74,11 @@ const savedLobbies = createSlice({
 
 const rootReducer = combineReducers({ allLobbies: savedLobbies.reducer });
 
+type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
+
 export type BackgroundRootState = ReturnType<typeof rootReducer>;
-export type BackgroundDispatch = ReturnType<typeof createStore>["dispatch"];
+export type BackgroundStore = ThenArg<ReturnType<typeof createStore>>;
+export type BackgroundDispatch = BackgroundStore["dispatch"];
 
 const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   next
@@ -129,8 +132,9 @@ function createStore() {
         },
       }).concat(lobbyMiddleware),
   });
-  persistStore(store);
-  return store;
+  return new Promise<typeof store>((resolve) =>
+    persistStore(store, null, () => resolve(store))
+  );
 }
 
 export const {

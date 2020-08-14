@@ -5,7 +5,7 @@ import {
   savedLobbySelector,
   claimSavedLobby,
   saveLobby,
-} from "../store/backgroundStore";
+} from "../background/store";
 import { useBackgroundEndpoint } from "./content";
 import { Dialog } from "@material-ui/core";
 

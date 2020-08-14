@@ -2,12 +2,7 @@ import * as Comlink from "comlink";
 import { createBackgroundEndpoint, isMessagePort } from "comlink-extension";
 import Debug from "debug";
 import { browser, WebNavigation } from "webextension-polyfill-ts";
-import {
-  createStore,
-  SavedLobby,
-  saveLobby,
-  releaseSavedLobby,
-} from "../store/backgroundStore";
+import { createStore, releaseSavedLobby, BackgroundStore } from "./store";
 import { Store } from "@reduxjs/toolkit";
 import { initializeNetworking, NetworkFeed, NetworkFeedOpts } from "./network";
 import { makeTabAwareStore } from "../utils";
@@ -16,19 +11,19 @@ const debug = Debug("background");
 
 export class BackgroundEndpoint {
   private readonly urlListeners: any[] = [];
-  private static _store: Store;
-  private readonly store: Store;
+  private static _store: Promise<BackgroundStore>;
+  private store?: Store;
 
   constructor(public readonly tabId: number) {
     if (!BackgroundEndpoint._store) {
       BackgroundEndpoint._store = createStore();
     }
-    this.store = makeTabAwareStore(BackgroundEndpoint._store, this.tabId);
     browser.tabs.onRemoved.addListener(this.onTabClose);
   }
 
   public async getStore() {
     await initializeNetworking();
+    this.store = makeTabAwareStore(await BackgroundEndpoint._store, this.tabId);
     return Comlink.proxy(this.store);
   }
 
@@ -53,7 +48,7 @@ export class BackgroundEndpoint {
 
   private onTabClose = (tabId: number) => {
     if (tabId === this.tabId) {
-      this.store.dispatch(releaseSavedLobby());
+      this.store?.dispatch(releaseSavedLobby());
     }
     browser.tabs.onRemoved.removeListener(this.onTabClose);
   };

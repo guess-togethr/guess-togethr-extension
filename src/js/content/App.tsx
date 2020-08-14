@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { createStore } from "../store";
+import { createStore } from "./store";
 import { Provider } from "react-redux";
 import ToolbarContainer from "./containers/Toolbar";
 import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../utils";
-import { setUser } from "../store/user";
+import { setUser } from "./store/user";
 import { proxy } from "comlink";
 import { BackgroundStoreContext, useBackgroundEndpoint } from "./hooks";
 

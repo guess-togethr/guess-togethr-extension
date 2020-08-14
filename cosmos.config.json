@@ -3,5 +3,6 @@
   "webpack": {
     "overridePath": "./webpack.override.js"
   },
-  "watchDirs": ["./src"]
+  "watchDirs": ["./src"],
+  "globalImports": ["./src/js/content/global.ts"]
 }

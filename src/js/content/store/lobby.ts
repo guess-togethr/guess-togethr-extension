@@ -5,11 +5,12 @@ import {
   createAction,
   createNextState,
   AnyAction,
+  createReducer,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import sharedState from "./sharedState";
 import { LobbyServer, LobbyClient } from "./lobbyManager";
-import { User } from "../protocol/schema";
+import { User } from "../../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
 import localState, { leaveLobby, createLobby } from "./localState";
@@ -23,6 +24,14 @@ export enum ConnectionState {
   Connected,
   Error,
 }
+
+// This middleware performs two functions:
+//
+// 1. Maintains a singleton lobby object and destroys it is left or
+// a new lobby is joined.
+//
+// 2. Imperatively sends a join when the connection state is
+// appropriate, i.e. the host is connected and is already not joined
 
 const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
   let lobby: LobbyServer | LobbyClient | null = null;
@@ -75,23 +84,27 @@ const crossReducer = (
     if (!draft.localState || !draft.sharedState) {
       return;
     }
-    if (addJoinRequest.match(action)) {
-      if (
-        !findConflictingUser(draft.localState.joinRequests, action.payload) &&
-        !findConflictingUser(draft.sharedState.users, action.payload)
-      ) {
-        draft.localState.joinRequests.push(action.payload);
+    switch (action.type) {
+      case addJoinRequest.toString(): {
+        if (
+          !findConflictingUser(draft.localState.joinRequests, action.payload) &&
+          !findConflictingUser(draft.sharedState.users, action.payload)
+        ) {
+          draft.localState.joinRequests.push(action.payload);
+        }
+        break;
       }
-    } else if (
-      approveJoinRequest.match(action) ||
-      denyJoinRequest.match(action)
-    ) {
-      draft.localState.joinRequests = draft.localState.joinRequests.filter(
-        (r) => !shallowEqual(r, action.payload)
-      );
+      case approveJoinRequest.toString():
+      case denyJoinRequest.toString(): {
+        draft.localState.joinRequests = draft.localState.joinRequests.filter(
+          (r) => !shallowEqual(r, action.payload)
+        );
 
-      approveJoinRequest.match(action) &&
-        draft.sharedState.users.push(action.payload);
+        approveJoinRequest.match(action) &&
+          draft.sharedState.users.push(action.payload);
+
+        break;
+      }
     }
   });
 

@@ -21,7 +21,6 @@ var fileExtensions = [
   "gif",
   "eot",
   "otf",
-  "svg",
   "ttf",
   "woff",
   "woff2",
@@ -64,6 +63,10 @@ var options = {
         test: /\.(j|t)sx?$/,
         loader: "babel-loader",
         exclude: /node_modules/,
+      },
+      {
+        test: /\.svg$/,
+        loader: "@svgr/webpack",
       },
     ],
   },

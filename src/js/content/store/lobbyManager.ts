@@ -3,13 +3,13 @@ import {
   LobbyState,
   User,
   ServerMessage,
-} from "../protocol/schema";
+} from "../../protocol/schema";
 import { Patch, applyPatches } from "immer";
 import { Remote, proxy, releaseProxy } from "comlink";
-import { NetworkFeed } from "../background/network";
+import { NetworkFeed } from "../../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
-import { validateClientMessage, validateServerMessage } from "../protocol";
-import { RemoteBackgroundEndpoint } from "../content/hooks";
+import { validateClientMessage, validateServerMessage } from "../../protocol";
+import { RemoteBackgroundEndpoint } from "../hooks";
 import {
   setInitialSharedState,
   applySharedStatePatches,

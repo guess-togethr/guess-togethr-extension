@@ -1,6 +1,14 @@
 import React, { useState, useCallback } from "react";
 import CurrentLobbyContainer from "../containers/CurrentLobby";
-import { Collapse, List, ListItem } from "@material-ui/core";
+import {
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  SvgIcon,
+  ListItemIcon,
+} from "@material-ui/core";
+import Logo from "../logo.svg";
 
 interface Props {
   currentLobby?: typeof CurrentLobbyContainer;
@@ -23,11 +31,27 @@ const Toolbar = (props: Props) => {
 
   return (
     <Collapse collapsedHeight={40} in={open}>
-      <List onBlur={onCloseCallback}>
-        {currentLobby || <ListItem button>GeoguessTogethr</ListItem>}
+      <List
+        style={{
+          backgroundColor: "rgb(40,40,40)",
+          color: "#ddd",
+          maxWidth: 300,
+        }}
+        onBlur={onCloseCallback}
+      >
+        {currentLobby || (
+          <ListItem button>
+            <ListItemIcon>
+              <SvgIcon>
+                <Logo color="white" />
+              </SvgIcon>
+            </ListItemIcon>
+            <ListItemText>GeoguessTogethr</ListItemText>
+          </ListItem>
+        )}
         {lobbies.map((l) => (
           <ListItem button key={l.id}>
-            {l.name}
+            <ListItemText>{l.name}</ListItemText>
           </ListItem>
         ))}
       </List>

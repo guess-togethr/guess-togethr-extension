@@ -1,6 +1,6 @@
 import React, { MouseEvent, useState, forwardRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { userSelector } from "../../store/user";
+import { userSelector } from "../store/user";
 import {
   Button,
   Menu,
@@ -17,10 +17,10 @@ import {
   claimSavedLobby,
   SavedLobby,
   BackgroundDispatch,
-} from "../../store/backgroundStore";
+} from "../../background/store";
 import Join from "../Join";
-import { createLobby } from "../../store/lobby";
-import { AppDispatch } from "../../store";
+import { createLobby } from "../store/lobby";
+import { AppDispatch } from "../store";
 import {
   useBackgroundDispatch,
   useBackgroundEndpoint,
@@ -86,7 +86,7 @@ const ToolbarContainer = () => {
 
   return (
     <div>
-      <Collapse in={open} collapsedHeight={30} onBlur={() => setOpen(false)}>
+      <Collapse in={open} collapsedHeight={30}>
         <List style={{ padding: 0 }}>
           <MainContent
             ref={setAnchorEl}

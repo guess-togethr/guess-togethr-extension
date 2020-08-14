@@ -190,10 +190,8 @@ export class NetworkFeed {
   }
 
   public sendToPeer(data: any, peer: string) {
-    this.extension.send(
-      data,
-      this.peers.find((p: any) => p.publicKeyString === peer)
-    );
+    const foundPeer = this.peers.find((p: any) => p.publicKeyString === peer);
+    foundPeer && this.extension.send(data, foundPeer);
   }
 
   public onLatestValue(

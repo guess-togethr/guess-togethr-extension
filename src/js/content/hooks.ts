@@ -4,7 +4,7 @@ import {
   BackgroundRootState,
   savedLobbySelector,
   BackgroundDispatch,
-} from "../store/backgroundStore";
+} from "../background/store";
 import {
   createStoreHook,
   createSelectorHook,
@@ -13,7 +13,7 @@ import {
   useSelector,
   shallowEqual,
 } from "react-redux";
-import { RootState } from "../store";
+import { RootState } from "./store";
 import { wrap, Remote } from "comlink";
 import { BackgroundEndpoint } from "../background/background";
 import { createEndpoint } from "comlink-extension";
