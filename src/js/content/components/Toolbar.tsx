@@ -1,61 +1,70 @@
-import React, { useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
+import Dropdown from "./Dropdown";
 import CurrentLobbyContainer from "../containers/CurrentLobby";
+import { ConnectionState } from "../store/lobbyState";
 import {
-  Collapse,
-  List,
-  ListItem,
-  ListItemText,
-  SvgIcon,
   ListItemIcon,
+  SvgIcon,
+  ListItemText,
+  ListItem,
 } from "@material-ui/core";
 import Logo from "../logo.svg";
 
-interface Props {
+interface ToolbarProps {
   currentLobby?: typeof CurrentLobbyContainer;
+  connectionState?: ConnectionState;
   lobbies: { id: string; name?: string }[];
-  onOpen?: () => void;
-  onClose?: () => void;
 }
 
-const Toolbar = (props: Props) => {
-  const { currentLobby, lobbies, onOpen, onClose } = props;
+const Toolbar = ({ currentLobby, lobbies, connectionState }: ToolbarProps) => {
   const [open, setOpen] = useState(false);
+  const logoColor = useMemo(() => {
+    if (!currentLobby || !connectionState) {
+      return "white";
+    }
 
-  const onOpenCallback = useCallback(() => {
-    setOpen((isOpen) => (!isOpen && onOpen?.(), true));
-  }, [onOpen]);
+    switch (connectionState) {
+      case ConnectionState.Connected:
+        return "green";
+      case ConnectionState.Error:
+        return "red";
+      case ConnectionState.Connecting:
+      case ConnectionState.GettingInitialData:
+      case ConnectionState.WaitingForHost:
+      case ConnectionState.WaitingForJoin:
+        return "blue";
+      default:
+        return "white";
+    }
+  }, [currentLobby, connectionState]);
 
-  const onCloseCallback = useCallback(() => {
-    setOpen((isOpen) => isOpen && (onClose?.(), false));
-  }, [onClose]);
+  const onMainClick = useCallback(() => setOpen((isOpen) => !isOpen), []);
+  const mainChild = (
+    <ListItem button onClick={onMainClick}>
+      <ListItemIcon>
+        <SvgIcon>
+          <Logo color={logoColor} />
+        </SvgIcon>
+      </ListItemIcon>
+      <ListItemText primaryTypographyProps={{ variant: "h6" }}>
+        GuessTogethr
+      </ListItemText>
+    </ListItem>
+  );
 
   return (
-    <Collapse collapsedHeight={40} in={open}>
-      <List
-        style={{
-          backgroundColor: "rgb(40,40,40)",
-          color: "#ddd",
-          maxWidth: 300,
-        }}
-        onBlur={onCloseCallback}
-      >
-        {currentLobby || (
-          <ListItem button>
-            <ListItemIcon>
-              <SvgIcon>
-                <Logo color="white" />
-              </SvgIcon>
-            </ListItemIcon>
-            <ListItemText>GeoguessTogethr</ListItemText>
-          </ListItem>
-        )}
-        {lobbies.map((l) => (
-          <ListItem button key={l.id}>
-            <ListItemText>{l.name}</ListItemText>
-          </ListItem>
-        ))}
-      </List>
-    </Collapse>
+    <Dropdown
+      open={open}
+      mainChild={mainChild}
+      collapsedHeight={48}
+      onClose={() => setOpen(false)}
+    >
+      {lobbies.map((l) => (
+        <ListItem key={l.id} button>
+          <ListItemText inset>{l.name}</ListItemText>
+        </ListItem>
+      ))}
+    </Dropdown>
   );
 };
 

@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useRef, useLayoutEffect, useState } from "react";
 import { Action, AnyAction, Store } from "@reduxjs/toolkit";
 import {
   BackgroundRootState,
@@ -14,19 +14,7 @@ import {
   shallowEqual,
 } from "react-redux";
 import { RootState } from "./store";
-import { wrap, Remote } from "comlink";
-import { BackgroundEndpoint } from "../background/background";
-import { createEndpoint } from "comlink-extension";
-import { browser } from "webextension-polyfill-ts";
-import { cacheRemoteProperties } from "../utils";
-
-const endpoint = cacheRemoteProperties(
-  wrap<BackgroundEndpoint>(createEndpoint(browser.runtime.connect()))
-);
-
-export type RemoteBackgroundEndpoint = typeof endpoint;
-
-export const useBackgroundEndpoint = () => endpoint;
+import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 export const BackgroundStoreContext: any = createContext(null);
 
@@ -48,9 +36,20 @@ export const useBackgroundDispatch: () => BackgroundDispatch = createDispatchHoo
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const useClaimedLobby = () => {
+  const backgroundEndpoint = useBackgroundEndpoint();
   return useBackgroundSelector((state) =>
-    savedLobbySelector
+    backgroundEndpoint && savedLobbySelector
       .selectAll(state)
-      .find((lobby) => lobby.tabId === endpoint.tabId)
+      .find((lobby) => lobby.tabId === backgroundEndpoint.tabId)
   );
 };
+
+export const useDimensions = () => {
+  const ref = useRef<Element>();
+  const [dimensions, setDimensions] = useState<{width: number, height: number}>();
+  useLayoutEffect(() => {
+    setDimensions(ref.current ? (({width, height}) => ({width, height}))(ref.current.getBoundingClientRect()) : undefined)
+  }, [ref.current])
+
+  return [ref, dimensions]
+}

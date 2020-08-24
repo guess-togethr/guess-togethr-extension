@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { AppDispatch } from "../store";
 import { useDispatch } from "react-redux";
-import { createLobby } from "../store/lobby";
+import { createLobby } from "../store/lobbyState";
 import { SavedLobby } from "../../background/store";
 import { useAppSelector } from "../hooks";
 import { leaveLobby } from "../store/localState";

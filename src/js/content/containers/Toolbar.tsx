@@ -19,14 +19,11 @@ import {
   BackgroundDispatch,
 } from "../../background/store";
 import Join from "../Join";
-import { createLobby } from "../store/lobby";
+import { createLobby } from "../store/lobbyState";
 import { AppDispatch } from "../store";
-import {
-  useBackgroundDispatch,
-  useBackgroundEndpoint,
-  useBackgroundSelector,
-} from "../hooks";
+import { useBackgroundDispatch, useBackgroundSelector } from "../hooks";
 import CurrentLobbyContainer from "./CurrentLobby";
+import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 
 interface MainContentProps {
   claimedLobby?: SavedLobby;

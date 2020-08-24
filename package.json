@@ -7,7 +7,7 @@
     "start": "cross-env NODE_ENV=development node -r ts-node/register utils/webserver.js",
     "start:server": "./node_modules/.bin/discovery-signal-webrtc",
     "debug": "node --lazy --inspect-brk=9229 --preserve-symlinks --preserve-symlinks-main utils/webserver.js",
-    "cosmos": "./node_modules/.bin/cosmos"
+    "cosmos": "node -r ts-node/register ./node_modules/react-cosmos/bin/cosmos"
   },
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.10.4",
@@ -46,6 +46,7 @@
     "random-access-memory": "^3.1.1",
     "react": "16.12.0",
     "react-dom": "^16.13.1",
+    "react-intersection-observer": "^8.26.2",
     "react-redux": "^7.2.0",
     "reconnecting-websocket": "^4.4.0",
     "reduce-reducers": "^1.0.4",

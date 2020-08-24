@@ -245,7 +245,7 @@ type NonFunctionProperties<T> = {
   [P in keyof T]: T[P] extends Function ? never : P;
 }[keyof T];
 
-type CachedRemote<T, CachedProps extends NonFunctionProperties<T>> = Omit<
+export type CachedRemote<T, CachedProps extends NonFunctionProperties<T>> = Omit<
   Remote<T>,
   CachedProps
 > &

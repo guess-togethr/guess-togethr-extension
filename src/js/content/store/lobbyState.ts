@@ -27,7 +27,7 @@ export enum ConnectionState {
 
 // This middleware performs two functions:
 //
-// 1. Maintains a singleton lobby object and destroys it is left or
+// 1. Maintains a singleton lobby object and destroys it if left or
 // a new lobby is joined.
 //
 // 2. Imperatively sends a join when the connection state is

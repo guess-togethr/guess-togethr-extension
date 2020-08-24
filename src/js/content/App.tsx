@@ -6,12 +6,16 @@ import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../utils";
 import { setUser } from "./store/user";
 import { proxy } from "comlink";
-import { BackgroundStoreContext, useBackgroundEndpoint } from "./hooks";
+import { BackgroundStoreContext } from "./hooks";
+import BackgroundEndpointProvider, {
+  useBackgroundEndpoint,
+  RemoteBackgroundEndpoint,
+} from "./containers/BackgroundEndpointProvider";
 
-const backgroundEndpoint = useBackgroundEndpoint();
-const store = createStore(backgroundEndpoint);
-
-async function monitorUserLogin() {
+async function monitorUserLogin(
+  store: Store<any>,
+  endpoint: RemoteBackgroundEndpoint
+) {
   async function getUserId() {
     const response = await fetch("/api/v3/profiles/");
     if (response.ok) {
@@ -22,7 +26,7 @@ async function monitorUserLogin() {
     }
   }
 
-  backgroundEndpoint.onUrlChange(proxy(getUserId));
+  endpoint.onUrlChange(proxy(getUserId));
   await getUserId();
 }
 
@@ -30,17 +34,24 @@ const App = () => {
   const [backgroundStore, setBackgroundStore] = useState<Store<any> | null>(
     null
   );
+  const [store, setStore] = useState<Store<any> | null>(null);
+  const backgroundEndpoint = useBackgroundEndpoint();
   useEffect(() => {
+    if (!backgroundEndpoint) {
+      return;
+    }
+    const newStore = createStore(backgroundEndpoint);
+    setStore(newStore);
     Promise.all([
       backgroundEndpoint.getStore().then(remoteStoreWrapper),
-      backgroundEndpoint.waitForCache("tabId"),
-      monitorUserLogin(),
-    ]).then(([store]) => {
-      setBackgroundStore(store);
+      monitorUserLogin(newStore, backgroundEndpoint),
+    ]).then(([backgroundStore]) => {
+      setBackgroundStore(backgroundStore);
     });
-  }, []);
+  }, [backgroundEndpoint]);
   return (
-    backgroundStore && (
+    backgroundStore &&
+    store && (
       <Provider store={backgroundStore} context={BackgroundStoreContext}>
         <Provider store={store}>
           <ToolbarContainer />
@@ -50,4 +61,8 @@ const App = () => {
   );
 };
 
-export default App;
+export default () => (
+  <BackgroundEndpointProvider>
+    <App />
+  </BackgroundEndpointProvider>
+);

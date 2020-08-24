@@ -34,12 +34,12 @@ export type NetworkFeedOpts = {
 } & (
   | {
       isServer: true;
-      lobbyId?: string;
+      id?: string;
       privateKey?: Uint8Array;
     }
   | {
       isServer: false;
-      lobbyId: string;
+      id: string;
     }
 );
 
@@ -79,10 +79,10 @@ export class NetworkFeed {
 
   constructor(opts: NetworkFeedOpts) {
     try {
-      const { lobbyId, publicKey, privateKey } = opts.lobbyId
+      const { lobbyId, publicKey, privateKey } = opts.id
         ? {
-            lobbyId: opts.lobbyId,
-            publicKey: decodeLobbyId(opts.lobbyId),
+            lobbyId: opts.id,
+            publicKey: decodeLobbyId(opts.id),
             privateKey: opts.isServer && opts.privateKey,
           }
         : generateLobbyId();
@@ -109,7 +109,7 @@ export class NetworkFeed {
           db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
         Buffer.from(publicKey),
         {
-          createIfMissing: !opts.lobbyId,
+          createIfMissing: !opts.id,
           valueEncoding: "json",
           secretKey:
             opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
@@ -250,7 +250,7 @@ export async function getTestLobby(isServer: boolean) {
   const opts = generateLobbyId(new Uint8Array(sodium.crypto_sign_SEEDBYTES));
   const feed = new NetworkFeed({
     isServer,
-    lobbyId: opts.lobbyId,
+    id: opts.lobbyId,
     privateKey: isServer ? opts.privateKey : undefined,
   });
   await feed.connect();

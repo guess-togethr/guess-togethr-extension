@@ -1,5 +1,5 @@
 import React from "react";
-import { ConnectionState } from "../store/lobby";
+import { ConnectionState } from "../store/lobbyState";
 
 interface Props {
   name: string;

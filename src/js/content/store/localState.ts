@@ -2,7 +2,7 @@ import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts } from "./lobbyManager";
 import { SavedLobby } from "../../background/store";
-import { RemoteBackgroundEndpoint } from "../hooks";
+import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 
 interface LocalState {
   id: string;
@@ -19,14 +19,11 @@ export const createLobby = createAsyncThunk<
   { state: any; extra: RemoteBackgroundEndpoint }
 >("lobby/createLobby", async (opts, store) => {
   let lobby;
-  let normalizedOpts = ("id" in opts
-    ? { lobbyId: opts.id, ...opts }
-    : opts) as LobbyOpts;
 
-  if (normalizedOpts.isServer) {
-    lobby = new LobbyServer(store.extra, store, normalizedOpts);
+  if (opts.isServer) {
+    lobby = new LobbyServer(store.extra, store, opts as any);
   } else {
-    lobby = new LobbyClient(store.extra, store, normalizedOpts);
+    lobby = new LobbyClient(store.extra, store, opts as any);
   }
   await lobby.init();
   if (!store.getState().user) {

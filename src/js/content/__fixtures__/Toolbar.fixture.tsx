@@ -1,6 +1,6 @@
 import React from "react";
-import Toolbar from "../components/Toolbar";
 import faker from "faker";
+import Toolbar from "../components/Toolbar";
 
 export default (
   <Toolbar

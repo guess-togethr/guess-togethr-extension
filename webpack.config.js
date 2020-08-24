@@ -74,7 +74,7 @@ var options = {
     alias: alias,
     extensions: fileExtensions
       .map((extension) => "." + extension)
-      .concat([".jsx", ".js", ".tsx", ".ts", ".css"]),
+      .concat([".jsx", ".js", ".tsx", ".ts", ".css", ".svg"]),
   },
   resolveLoader: {
     alias: {

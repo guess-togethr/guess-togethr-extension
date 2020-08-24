@@ -1,4 +1,4 @@
-import * as ts from "typescript";
+import { ScriptTarget, ModuleKind } from "typescript";
 import * as TJS from "typescript-json-schema";
 import Ajv from "ajv";
 import pack from "ajv-pack";
@@ -16,25 +16,10 @@ const loader: loader.Loader = function () {
     noEmit: true,
     emitDecoratorMetadata: true,
     experimentalDecorators: true,
-    target: ts.ScriptTarget.ES5,
-    module: ts.ModuleKind.CommonJS,
+    target: ScriptTarget.ES5,
+    module: ModuleKind.CommonJS,
     allowUnusedLabels: true,
   };
-  // const host = ts.createCompilerHost(options);
-  // function shim(f: (this: any, ...args: any[]) => any) {
-  //   return (...args: [string, ...any[]]) => {
-  //     if (args[0] === "DUMMY.ts") {
-  //       const sourceFile = ts.createSourceFile(args[0], source, options.target);
-  //       return sourceFile;
-  //     }
-  //     return f(...args);
-  //   };
-  // }
-
-  // host.getSourceFile = shim(host.getSourceFile.bind(host));
-  // host.getSourceFileByPath =
-  //   host.getSourceFileByPath && shim(host.getSourceFileByPath.bind(host));
-  // const program = ts.createProgram(["DUMMY"], {}, host);
   const program = TJS.getProgramFromFiles([this.resourcePath], options);
   const generator = TJS.buildGenerator(program, settings);
   if (!generator) {

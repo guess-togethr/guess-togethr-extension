@@ -9,7 +9,6 @@ import { Remote, proxy, releaseProxy } from "comlink";
 import { NetworkFeed } from "../../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
 import { validateClientMessage, validateServerMessage } from "../../protocol";
-import { RemoteBackgroundEndpoint } from "../hooks";
 import {
   setInitialSharedState,
   applySharedStatePatches,
@@ -17,7 +16,8 @@ import {
 } from "./sharedState";
 import { AppDispatch, RootState } from ".";
 import { userConnected, userDisconnected } from "./localState";
-import { addJoinRequest } from "./lobby";
+import { addJoinRequest } from "./lobbyState";
+import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 
 const debug = require("debug")("lobby");
 
@@ -25,13 +25,13 @@ export type Identity = { publicKey: string; privateKey: string };
 
 export type LobbyServerOpts = {
   isServer: true;
-  lobbyId?: string;
+  id?: string;
   identity?: Identity;
   name?: string;
 };
 export type LobbyClientOpts = {
   isServer: false;
-  lobbyId: string;
+  id: string;
   identity?: Identity;
 };
 
