@@ -1,23 +1,23 @@
 import {
   ClientMessage,
-  LobbyState,
+  SharedState,
   User,
   ServerMessage,
-} from "../../protocol/schema";
+} from "../protocol/schema";
 import { Patch, applyPatches } from "immer";
 import { Remote, proxy, releaseProxy } from "comlink";
-import { NetworkFeed } from "../../background/network";
+import { NetworkFeed } from "../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
-import { validateClientMessage, validateServerMessage } from "../../protocol";
+import { validateClientMessage, validateServerMessage } from "../protocol";
 import {
   setInitialSharedState,
   applySharedStatePatches,
   trackSharedStatePatches,
-} from "./sharedState";
-import { AppDispatch, RootState } from ".";
-import { userConnected, userDisconnected } from "./localState";
-import { addJoinRequest } from "./lobbyState";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+} from "./store/sharedState";
+import { AppDispatch, RootState } from "./store";
+import { userConnected, userDisconnected } from "./store/localState";
+import { addJoinRequest } from "./store/lobbyState";
+import { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 const debug = require("debug")("lobby");
 
@@ -145,17 +145,20 @@ export class LobbyClient extends LobbyBase {
     if (data.type === "state-patch") {
       this.store.dispatch(applySharedStatePatches(data.payload as Patch[]));
     } else if (data.type === "set-state") {
-      this.store.dispatch(setInitialSharedState(data.payload as LobbyState));
+      this.store.dispatch(setInitialSharedState(data.payload as SharedState));
     }
   };
 
   public sendJoin() {
     const state = this.store.getState();
+    if (!state.geoguessr.user) {
+      throw new Error("Invalid USER??");
+    }
     this.sendClientMessage(
       {
         type: "join",
         payload: {
-          ggId: state.user!.id,
+          ggId: state.geoguessr.user!.id,
           publicKey: this.identity.publicKey,
         },
       },
@@ -184,10 +187,18 @@ export class LobbyServer extends LobbyBase {
     const latest = await this.buildInitialState();
     if (!latest) {
       const state = this.store.getState();
+      if (!state.geoguessr.user) {
+        throw new Error("User logged out");
+      }
       const newSharedState = {
         name: state.lobby.localState!.name!,
         ownerPublicKey: this.identity.publicKey,
-        users: [{ ggId: state.user!.id, publicKey: this.identity.publicKey }],
+        users: [
+          {
+            ggId: state.geoguessr.user.id,
+            publicKey: this.identity.publicKey,
+          },
+        ],
       };
       this.writeToFeed({ type: "set-state", payload: newSharedState });
       this.store.dispatch(setInitialSharedState(newSharedState));

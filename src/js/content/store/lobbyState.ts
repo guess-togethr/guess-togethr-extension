@@ -5,15 +5,15 @@ import {
   createAction,
   createNextState,
   AnyAction,
-  createReducer,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import sharedState from "./sharedState";
-import { LobbyServer, LobbyClient } from "./lobbyManager";
+import { LobbyServer, LobbyClient } from "../lobbyManager";
 import { User } from "../../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
 import localState, { leaveLobby, createLobby } from "./localState";
+import { selectUser } from "./geoguessrState";
 
 export enum ConnectionState {
   Disconnected,
@@ -47,10 +47,11 @@ const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
       lobby?.destroy();
       lobby = null;
     }
-    const previousConnectionState = getConnectionState(store.getState());
+    const previousConnectionState = selectConnectionState(store.getState());
     const ret = next(action);
     if (
-      getConnectionState(store.getState()) === ConnectionState.WaitingForJoin &&
+      selectConnectionState(store.getState()) ===
+        ConnectionState.WaitingForJoin &&
       previousConnectionState !== ConnectionState.WaitingForJoin &&
       lobby instanceof LobbyClient
     ) {
@@ -113,21 +114,21 @@ const lobbyReducer = reduceReducers(
   crossReducer
 ) as typeof combinedReducer;
 
-const getMembers = (state: RootState) => state.lobby.sharedState?.users;
-const getOnlineUsers = (state: RootState) =>
+const selectMembers = (state: RootState) => state.lobby.sharedState?.users;
+const selectOnlineUsers = (state: RootState) =>
   state.lobby.localState?.onlineUsers;
 
-const getOwner = createSelector(
+const selectOwner = createSelector(
   (state: RootState) => state.lobby.sharedState?.ownerPublicKey,
-  getMembers,
+  selectMembers,
   (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
 );
-const getConnectionState = createSelector(
-  (state: RootState) => state.user?.id,
+const selectConnectionState = createSelector(
+  selectUser,
   (state: RootState) => state.lobby.localState?.error,
-  getOnlineUsers,
-  getMembers,
-  getOwner,
+  selectOnlineUsers,
+  selectMembers,
+  selectOwner,
   (user, error, onlineUsers, members, owner) => {
     if (!user || !localState) {
       return ConnectionState.Disconnected;
@@ -145,7 +146,7 @@ const getConnectionState = createSelector(
       return ConnectionState.WaitingForHost;
     }
 
-    if (members.findIndex(({ ggId }) => ggId === user) === -1) {
+    if (members.findIndex(({ ggId }) => ggId === (user && user.id)) === -1) {
       return ConnectionState.WaitingForJoin;
     }
 
@@ -154,10 +155,10 @@ const getConnectionState = createSelector(
 );
 
 export const lobbySelectors = {
-  getConnectionState,
-  getOnlineUsers,
-  getMembers,
-  getOwner,
+  selectConnectionState,
+  selectOnlineUsers,
+  selectMembers,
+  selectOwner,
 };
 
 export {

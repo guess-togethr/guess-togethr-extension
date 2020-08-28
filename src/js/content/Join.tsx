@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import * as Comlink from "comlink";
-import { useBackgroundSelector, useBackgroundDispatch } from "./App";
 import {
   savedLobbySelector,
   claimSavedLobby,
   saveLobby,
 } from "../background/store";
-import { useBackgroundEndpoint } from "./content";
 import { Dialog } from "@material-ui/core";
+import { useBackgroundSelector, useBackgroundDispatch } from "./hooks";
+import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 const Join = () => {
   const lobbies = useBackgroundSelector(savedLobbySelector.selectAll);

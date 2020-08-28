@@ -1,6 +1,6 @@
 import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { LobbyClient, LobbyServer, LobbyOpts } from "./lobbyManager";
+import { LobbyClient, LobbyServer, LobbyOpts } from "../lobbyManager";
 import { SavedLobby } from "../../background/store";
 import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 
@@ -64,7 +64,11 @@ const localState = createSlice({
       state?.onlineUsers.push(action.payload);
     },
     userDisconnected: (state, action: PayloadAction<string>) => {
-      state?.onlineUsers.filter((u) => u !== action.payload);
+      if (state?.onlineUsers) {
+        state.onlineUsers = state.onlineUsers.filter(
+          (u) => u !== action.payload
+        );
+      }
     },
     leaveLobby: () => null,
   },

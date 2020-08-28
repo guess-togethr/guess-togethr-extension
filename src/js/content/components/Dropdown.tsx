@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from "react";
 import { Collapse, List, Grow, ClickAwayListener } from "@material-ui/core";
 import { InView } from "react-intersection-observer";
+import Growable from "../containers/Growable";
 
 interface DropdownProps {
   mainChild: React.ReactElement;
@@ -27,17 +28,13 @@ const Dropdown: React.FunctionComponent<DropdownProps> = (props) => {
         in={open}
         ref={collapseRef}
       >
-        <List>
+        <List style={{ padding: 0 }}>
           {mainChild}
           {React.Children.map(children, (child) =>
             React.isValidElement(child) ? (
-              <InView root={collapseRef.current} threshold={0.9}>
-                {({ inView, ref }) => (
-                  <Grow in={inView} ref={ref}>
-                    {child}
-                  </Grow>
-                )}
-              </InView>
+              <Growable root={collapseRef.current} threshold={0.9}>
+                {child}
+              </Growable>
             ) : (
               child
             )

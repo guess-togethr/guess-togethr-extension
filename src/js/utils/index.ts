@@ -1,21 +1,27 @@
 import sodium from "./sodium_shim";
 import { Remote, proxy, transferHandlers } from "comlink";
-import { Store, AnyAction, Reducer, createNextState } from "@reduxjs/toolkit";
+import {
+  Store,
+  AnyAction,
+  Reducer,
+  createNextState,
+  Action,
+} from "@reduxjs/toolkit";
 import type { Patch } from "immer";
 import { BackgroundEndpoint } from "../background/background";
 
 type PatchListener = (patches: Patch[]) => void;
 
-export function trackPatches(
-  reducer: Reducer
-): [Reducer, (listener: PatchListener) => () => void] {
+export function trackPatches<S, A extends Action<any>>(
+  reducer: Reducer<S, A>
+): [Reducer<S, A>, (listener: PatchListener) => () => void] {
   const listeners = new Set<PatchListener>();
-  const newReducer: Reducer = (state, action) =>
+  const newReducer = ((state, action) =>
     createNextState(
       state,
-      (draft) => reducer(draft, action),
+      (draft) => reducer(draft as any, action),
       (patches) => listeners.forEach((l) => l(patches))
-    );
+    )) as Reducer<S, A>;
 
   const registerListener = (listener: PatchListener) => {
     listeners.add(listener);
@@ -131,18 +137,18 @@ export function decodeLobbyId(id: string) {
   }
 }
 
-export function generateNoiseKeypair() {
-  const pair = {
-    publicKey: new Uint8Array(sodium.crypto_kx_PUBLICKEYBYTES),
-    privateKey: new Uint8Array(sodium.crypto_kx_SECRETKEYBYTES),
-  };
+// export function generateNoiseKeypair() {
+//   const pair = {
+//     publicKey: new Uint8Array(sodium.crypto_kx_PUBLICKEYBYTES),
+//     privateKey: new Uint8Array(sodium.crypto_kx_SECRETKEYBYTES),
+//   };
 
-  sodium.crypto_kx_keypair(pair.publicKey, pair.privateKey);
-  return {
-    publicKey: bufferToBase64(pair.publicKey),
-    privateKey: bufferToBase64(pair.privateKey),
-  };
-}
+//   sodium.crypto_kx_keypair(pair.publicKey, pair.privateKey);
+//   return {
+//     publicKey: bufferToBase64(pair.publicKey),
+//     privateKey: bufferToBase64(pair.privateKey),
+//   };
+// }
 
 export async function remoteStoreWrapper<S extends any>(
   remoteStore: Remote<Store<S>>
@@ -245,10 +251,10 @@ type NonFunctionProperties<T> = {
   [P in keyof T]: T[P] extends Function ? never : P;
 }[keyof T];
 
-export type CachedRemote<T, CachedProps extends NonFunctionProperties<T>> = Omit<
-  Remote<T>,
-  CachedProps
-> &
+export type CachedRemote<
+  T,
+  CachedProps extends NonFunctionProperties<T>
+> = Omit<Remote<T>, CachedProps> &
   { [K in CachedProps]: T[K] } & {
     waitForCache<P extends CachedProps>(props: ReadonlyArray<P>): Promise<void>;
     waitForCache<P extends CachedProps>(

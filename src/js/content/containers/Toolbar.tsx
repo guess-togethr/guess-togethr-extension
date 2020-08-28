@@ -1,6 +1,5 @@
 import React, { MouseEvent, useState, forwardRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { userSelector } from "../store/user";
 import {
   Button,
   Menu,
@@ -24,6 +23,7 @@ import { AppDispatch } from "../store";
 import { useBackgroundDispatch, useBackgroundSelector } from "../hooks";
 import CurrentLobbyContainer from "./CurrentLobby";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
+import { selectUser } from "../store/geoguessrState";
 
 interface MainContentProps {
   claimedLobby?: SavedLobby;
@@ -45,7 +45,7 @@ const MainContent = forwardRef<HTMLDivElement, MainContentProps>(
 );
 
 const ToolbarContainer = () => {
-  const user = useSelector(userSelector);
+  const user = useSelector(selectUser);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -80,6 +80,10 @@ const ToolbarContainer = () => {
   );
 
   console.log(lobbies);
+
+  if (user === null) {
+    return null;
+  }
 
   return (
     <div>

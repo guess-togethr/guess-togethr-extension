@@ -31,11 +31,12 @@ export class BackgroundEndpoint {
     return this.tabId;
   }
 
-  public onUrlChange(cb: () => void) {
+  public onUrlChange(cb: (url: string) => void) {
     const listener = ({
       tabId,
+      url,
     }: WebNavigation.OnHistoryStateUpdatedDetailsType) =>
-      tabId === this.tabId && cb();
+      tabId === this.tabId && cb(url);
     browser.webNavigation.onHistoryStateUpdated.addListener(listener, {
       url: [{ urlEquals: "https://www.geoguessr.com/" }],
     });

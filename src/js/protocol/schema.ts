@@ -26,7 +26,7 @@ interface Challenge {
   roundStartTime?: number;
 }
 
-export interface LobbyState {
+export interface SharedState {
   name: string;
 
   currentChallenge?: Challenge;
@@ -72,7 +72,7 @@ export interface UserState {
 export type ServerMessage =
   | {
       type: "set-state";
-      payload: LobbyState;
+      payload: SharedState;
     }
   | {
       type: "state-patch";
