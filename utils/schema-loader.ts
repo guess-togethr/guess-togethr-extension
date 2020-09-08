@@ -4,7 +4,7 @@ import Ajv from "ajv";
 import pack from "ajv-pack";
 import { loader } from "webpack";
 
-const loader: loader.Loader = function () {
+const schemaLoader: loader.Loader = function () {
   const ajv = new Ajv({ sourceCode: true });
   const settings: TJS.PartialArgs = {
     required: true,
@@ -61,4 +61,4 @@ const loader: loader.Loader = function () {
     .join("\n");
 };
 
-export default loader;
+export default schemaLoader;
