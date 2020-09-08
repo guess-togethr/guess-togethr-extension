@@ -1,16 +1,9 @@
-import React, { useMemo, CSSProperties } from "react";
+import React, { useMemo } from "react";
 import { ConnectionState } from "../store/lobbyState";
-import {
-  Button,
-  Typography,
-  Avatar,
-  makeStyles,
-  TextField,
-  ListItem,
-} from "@material-ui/core";
-import { AvatarGroup } from "@material-ui/lab";
+import { Button, makeStyles, TextField, ListItem } from "@material-ui/core";
 import Growable from "../containers/Growable";
 import ToolbarHeader from "./ToolbarHeader";
+import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
 
 const useStyles = makeStyles({
   outerContainer: {
@@ -28,35 +21,6 @@ const useStyles = makeStyles({
     minHeight: 44,
   },
 });
-
-interface OnlineUsersProps {
-  onlineUsers: { id: string; name: string }[];
-  style?: CSSProperties;
-}
-
-const OnlineUsers = React.forwardRef<HTMLDivElement, OnlineUsersProps>(
-  ({ onlineUsers, style }, ref) => (
-    <ListItem
-      button
-      ref={ref}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        marginTop: 8,
-        ...style,
-      }}
-    >
-      <AvatarGroup max={3} style={{ marginRight: 8 }}>
-        {onlineUsers.map((u) => (
-          <Avatar key={u.id}>{u.name[0]}</Avatar>
-        ))}
-      </AvatarGroup>
-      <Typography variant="overline">{`${onlineUsers.length} user${
-        onlineUsers.length > 0 ? "s" : ""
-      } online`}</Typography>
-    </ListItem>
-  )
-);
 
 export interface CurrentLobbyProps extends OnlineUsersProps {
   name: string;
@@ -100,11 +64,9 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
         className={classes.toolbarHeader}
       />
       <div className={classes.outerContainer}>
-        {onlineUsers.length ? (
-          <Growable>
-            <OnlineUsers onlineUsers={onlineUsers} />
-          </Growable>
-        ) : undefined}
+        <Growable>
+          <OnlineUsers onlineUsers={onlineUsers} />
+        </Growable>
         <ListItem>
           <Growable>
             <TextField
