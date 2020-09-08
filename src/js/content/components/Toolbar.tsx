@@ -7,19 +7,16 @@ import {
   ListItemText,
   ListItem,
   makeStyles,
+  ListSubheader,
+  Paper,
 } from "@material-ui/core";
-import Logo from "../logo.svg";
-import CurrentLobby, { CurrentLobbyProps } from "./CurrentLobby";
+import CurrentLobby from "./CurrentLobby";
+import LogoIcon from "./LogoIcon";
+import ToolbarHeader from "./ToolbarHeader";
 
 const useStyles = makeStyles({
   mainListItem: {
     alignItems: "start",
-  },
-  "@global": {
-    "*": {
-      "--stop-color-1": "#ffffff",
-      "--stop-color-2": "#ffffff",
-    },
   },
 });
 
@@ -27,67 +24,67 @@ interface ToolbarProps {
   currentLobby?: {
     name: string;
     connectionState: ConnectionState;
+    inviteUrl: string;
     onlineUsers: { id: string; name: string }[];
   };
   lobbies: { id: string; name?: string }[];
+  onCreate?: () => void;
 }
 
-const Toolbar = ({ currentLobby, lobbies }: ToolbarProps) => {
+const Toolbar = ({ currentLobby, lobbies, onCreate }: ToolbarProps) => {
   const classes = useStyles();
   const [open, setOpen] = useState(false);
-  const logoColor = useMemo(() => {
-    if (!currentLobby) {
-      return "white";
-    }
+  // const logoColor = useMemo(() => {
+  //   if (!currentLobby) {
+  //     return "white";
+  //   }
 
-    switch (currentLobby.connectionState) {
-      case ConnectionState.Connected:
-        return "green";
-      case ConnectionState.Error:
-        return "red";
-      case ConnectionState.Connecting:
-      case ConnectionState.GettingInitialData:
-      case ConnectionState.WaitingForHost:
-      case ConnectionState.WaitingForJoin:
-        return "blue";
-      default:
-        return "white";
-    }
-  }, [currentLobby?.connectionState]);
+  //   switch (currentLobby.connectionState) {
+  //     case ConnectionState.Connected:
+  //       return "green";
+  //     case ConnectionState.Error:
+  //       return "red";
+  //     case ConnectionState.Connecting:
+  //     case ConnectionState.GettingInitialData:
+  //     case ConnectionState.WaitingForHost:
+  //     case ConnectionState.WaitingForJoin:
+  //       return "blue";
+  //     default:
+  //       return "white";
+  //   }
+  // }, [currentLobby]);
 
   const onMainClick = useCallback(() => setOpen((isOpen) => !isOpen), []);
   const mainChild = useMemo(
     () => (
-      <ListItem className={classes.mainListItem} button onClick={onMainClick}>
-        <ListItemIcon style={{ marginTop: 4 }}>
-          <SvgIcon>
-            <Logo />
-          </SvgIcon>
-        </ListItemIcon>
+      <Paper>
         {currentLobby ? (
-          <CurrentLobby {...currentLobby} expanded={open} />
+          <CurrentLobby {...currentLobby} onHeaderClick={onMainClick} />
         ) : (
-          <ListItemText primaryTypographyProps={{ variant: "h6" }}>
-            GuessTogethr
-          </ListItemText>
+          <ToolbarHeader primary="GuessTogethr" onClick={onMainClick} />
         )}
-      </ListItem>
+      </Paper>
     ),
-    [currentLobby]
+    [onMainClick, currentLobby]
   );
 
   return (
     <Dropdown
       open={open}
       mainChild={mainChild}
-      collapsedHeight={48}
+      collapsedHeight={44}
       onClose={() => setOpen(false)}
     >
-      {lobbies.map((l) => (
-        <ListItem key={l.id} button>
-          <ListItemText inset>{l.name}</ListItemText>
-        </ListItem>
-      ))}
+      {(lobbies.length
+        ? [<ListSubheader>Saved Lobbies</ListSubheader>].concat(
+            lobbies.map((l) => (
+              <ListItem key={l.id} button>
+                <ListItemText inset>{l.name}</ListItemText>
+              </ListItem>
+            ))
+          )
+        : []
+      ).concat(onCreate ? [<ListSubheader>Create New</ListSubheader>] : [])}
     </Dropdown>
   );
 };

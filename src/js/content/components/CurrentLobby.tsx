@@ -1,16 +1,33 @@
 import React, { useMemo, CSSProperties } from "react";
 import { ConnectionState } from "../store/lobbyState";
 import {
-  ListItem,
-  ListItemText,
   Button,
-  Grow,
   Typography,
   Avatar,
+  makeStyles,
+  TextField,
+  ListItem,
 } from "@material-ui/core";
-import { InView } from "react-intersection-observer";
 import { AvatarGroup } from "@material-ui/lab";
 import Growable from "../containers/Growable";
+import ToolbarHeader from "./ToolbarHeader";
+
+const useStyles = makeStyles({
+  outerContainer: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+  },
+  toplineContainer: {
+    display: "flex",
+  },
+  leaveButton: { alignSelf: "center", margin: "8px 0" },
+  toolbarHeader: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    minHeight: 44,
+  },
+});
 
 interface OnlineUsersProps {
   onlineUsers: { id: string; name: string }[];
@@ -19,12 +36,13 @@ interface OnlineUsersProps {
 
 const OnlineUsers = React.forwardRef<HTMLDivElement, OnlineUsersProps>(
   ({ onlineUsers, style }, ref) => (
-    <div
+    <ListItem
+      button
       ref={ref}
       style={{
         display: "flex",
         alignItems: "center",
-        marginBottom: 8,
+        marginTop: 8,
         ...style,
       }}
     >
@@ -36,19 +54,28 @@ const OnlineUsers = React.forwardRef<HTMLDivElement, OnlineUsersProps>(
       <Typography variant="overline">{`${onlineUsers.length} user${
         onlineUsers.length > 0 ? "s" : ""
       } online`}</Typography>
-    </div>
+    </ListItem>
   )
 );
 
 export interface CurrentLobbyProps extends OnlineUsersProps {
   name: string;
-  expanded: boolean;
   connectionState: ConnectionState;
+  inviteUrl: string;
+  onHeaderClick: () => void;
   onLeave?: () => void;
 }
 
 const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
-  const { name, expanded, onlineUsers, connectionState, onLeave } = props;
+  const {
+    name,
+    onlineUsers,
+    connectionState,
+    inviteUrl,
+    onHeaderClick,
+    onLeave,
+  } = props;
+  const classes = useStyles();
   const connectionLabel = useMemo(() => {
     switch (connectionState) {
       case ConnectionState.Connected:
@@ -65,33 +92,40 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
     }
   }, [connectionState]);
   return (
-    <div>
-      <ListItemText
-        style={{ minHeight: 36, marginTop: 0 }}
-        primaryTypographyProps={{ variant: "h6", style: { lineHeight: 1.1 } }}
+    <div className={classes.outerContainer}>
+      <ToolbarHeader
+        primary={name}
         secondary={connectionLabel}
-        secondaryTypographyProps={{ variant: "caption" }}
-      >
-        {name}
-      </ListItemText>
-      <div>
+        onClick={onHeaderClick}
+        className={classes.toolbarHeader}
+      />
+      <div className={classes.outerContainer}>
         {onlineUsers.length ? (
           <Growable>
             <OnlineUsers onlineUsers={onlineUsers} />
           </Growable>
         ) : undefined}
+        <ListItem>
+          <Growable>
+            <TextField
+              fullWidth
+              inputProps={{
+                readOnly: true,
+                onClick: (event) => event.stopPropagation(),
+                onMouseDown: (event) => event.stopPropagation(),
+                onFocus: (event) => event.currentTarget.select(),
+                onBlur: (event) => event.currentTarget.setSelectionRange(0, 1),
+              }}
+              variant="filled"
+              size="small"
+              label="Invite Link"
+              defaultValue={inviteUrl}
+            />
+          </Growable>
+        </ListItem>
         <Growable>
-          <Button variant="contained" color="primary">
-            Invite
-          </Button>
-        </Growable>
-        <Growable>
-          <Button
-            variant="contained"
-            color="secondary"
-            style={{ marginLeft: 8 }}
-          >
-            Leave
+          <Button color="secondary" className={classes.leaveButton}>
+            Leave Lobby
           </Button>
         </Growable>
       </div>

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-webpack-loader-syntax
 import {
   validateServerMessage as vsm,
   validateClientMessage as vcm,

@@ -5,7 +5,7 @@ import { createLobby } from "../store/lobbyState";
 import { SavedLobby } from "../../background/store";
 import { useAppSelector } from "../hooks";
 import { leaveLobby } from "../store/localState";
-import { List, ListItem, ListItemText } from "@material-ui/core";
+import { ListItem, ListItemText } from "@material-ui/core";
 
 interface Props {
   claimedLobby: SavedLobby;
@@ -13,7 +13,6 @@ interface Props {
 
 const CurrentLobbyContainer = (props: Props) => {
   const { claimedLobby } = props;
-  const claimedLobbyId = claimedLobby.id;
 
   const appDispatch: AppDispatch = useDispatch();
 
@@ -21,7 +20,7 @@ const CurrentLobbyContainer = (props: Props) => {
   const connectedLobbyId = connectedLobby?.id;
 
   useEffect(() => {
-    if (connectedLobbyId !== claimedLobbyId) {
+    if (connectedLobbyId !== claimedLobby.id) {
       appDispatch(createLobby(claimedLobby));
     }
 
@@ -30,7 +29,7 @@ const CurrentLobbyContainer = (props: Props) => {
         appDispatch(leaveLobby());
       };
     }
-  }, [claimedLobbyId, connectedLobbyId]);
+  }, [claimedLobby, connectedLobbyId, appDispatch]);
 
   return (
     <ListItem button>

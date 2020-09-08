@@ -10,6 +10,7 @@ export default {
         id: faker.random.word(),
         name: faker.random.word(),
       }))}
+      onCreate={() => {}}
     />
   ),
   connected: (
@@ -20,13 +21,17 @@ export default {
       }))}
       currentLobby={{
         connectionState: faker.random.number(
-          Object.keys(ConnectionState).length / 2
+          Object.keys(ConnectionState).length / 2 - 1
         ),
         name: faker.random.word(),
-        onlineUsers: Array.from({ length: faker.random.number(10) }, () => ({
-          id: faker.random.alphaNumeric(10),
-          name: faker.name.firstName(),
-        })),
+        onlineUsers: Array.from(
+          { length: faker.random.number(10) + 10 },
+          () => ({
+            id: faker.random.alphaNumeric(10),
+            name: faker.name.firstName(),
+          })
+        ),
+        inviteUrl: "https://FAKE.NEWS",
       }}
     ></Toolbar>
   ),

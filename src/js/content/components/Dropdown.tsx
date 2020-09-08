@@ -1,6 +1,5 @@
 import React, { useRef, useCallback } from "react";
-import { Collapse, List, Grow, ClickAwayListener } from "@material-ui/core";
-import { InView } from "react-intersection-observer";
+import { Collapse, List, ClickAwayListener } from "@material-ui/core";
 import Growable from "../containers/Growable";
 
 interface DropdownProps {
@@ -17,13 +16,15 @@ const Dropdown: React.FunctionComponent<DropdownProps> = (props) => {
   const collapseRef = useRef<Element>();
 
   const onClickAway = useCallback(() => {
-    open && onClose?.();
+    if (open) {
+      onClose?.();
+    }
   }, [open, onClose]);
 
   return (
     <ClickAwayListener onClickAway={onClickAway}>
       <Collapse
-        style={{ maxWidth: 300 }}
+        style={{ width: 256 }}
         collapsedHeight={collapsedHeight}
         in={open}
         ref={collapseRef}

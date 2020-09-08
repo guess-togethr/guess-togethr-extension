@@ -9,6 +9,8 @@ import { makeTabAwareStore } from "../utils";
 
 const debug = Debug("background");
 
+debug("yo");
+
 export class BackgroundEndpoint {
   private readonly urlListeners: any[] = [];
   private static _store: Promise<BackgroundStore>;
@@ -25,10 +27,6 @@ export class BackgroundEndpoint {
     await initializeNetworking();
     this.store = makeTabAwareStore(await BackgroundEndpoint._store, this.tabId);
     return Comlink.proxy(this.store);
-  }
-
-  public getTabId() {
-    return this.tabId;
   }
 
   public onUrlChange(cb: (url: string) => void) {
@@ -50,8 +48,8 @@ export class BackgroundEndpoint {
   private onTabClose = (tabId: number) => {
     if (tabId === this.tabId) {
       this.store?.dispatch(releaseSavedLobby());
+      browser.tabs.onRemoved.removeListener(this.onTabClose);
     }
-    browser.tabs.onRemoved.removeListener(this.onTabClose);
   };
 
   public destroy() {

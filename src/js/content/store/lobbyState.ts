@@ -5,6 +5,8 @@ import {
   createAction,
   createNextState,
   AnyAction,
+  createAsyncThunk,
+  unwrapResult,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import sharedState from "./sharedState";
@@ -13,7 +15,7 @@ import { User } from "../../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
 import localState, { leaveLobby, createLobby } from "./localState";
-import { selectUser } from "./geoguessrState";
+import { selectUser, userCacheSelectors, queryUsers } from "./geoguessrState";
 
 export enum ConnectionState {
   Disconnected,
@@ -67,7 +69,16 @@ const combinedReducer = combineReducers({
   sharedState,
 });
 
-const addJoinRequest = createAction<User>("lobby/addJoinRequest");
+const addJoinRequest = createAsyncThunk<User, User, { state: RootState }>(
+  "lobby/addJoinRequest",
+  async (user: User, { dispatch, getState }) => {
+    if (!userCacheSelectors.selectById(getState(), user.ggId)) {
+      await dispatch(queryUsers([user.ggId])).then(unwrapResult);
+    }
+
+    return user;
+  }
+);
 const approveJoinRequest = createAction<User>("lobby/approveJoinRequest");
 const denyJoinRequest = createAction<User>("lobby/denyJoinRequest");
 
@@ -86,7 +97,7 @@ const crossReducer = (
       return;
     }
     switch (action.type) {
-      case addJoinRequest.toString(): {
+      case addJoinRequest.fulfilled.toString(): {
         if (
           !findConflictingUser(draft.localState.joinRequests, action.payload) &&
           !findConflictingUser(draft.sharedState.users, action.payload)
@@ -117,6 +128,21 @@ const lobbyReducer = reduceReducers(
 const selectMembers = (state: RootState) => state.lobby.sharedState?.users;
 const selectOnlineUsers = (state: RootState) =>
   state.lobby.localState?.onlineUsers;
+
+const selectOnlineMembers = createSelector(
+  selectMembers,
+  selectOnlineUsers,
+  (members, onlineUsers) => {
+    if (!onlineUsers || !members) {
+      return [];
+    }
+
+    return onlineUsers.reduce(
+      (a, c) => a.concat(...[members.find((m) => m.publicKey === c) ?? []]),
+      [] as User[]
+    );
+  }
+);
 
 const selectOwner = createSelector(
   (state: RootState) => state.lobby.sharedState?.ownerPublicKey,
@@ -157,6 +183,7 @@ const selectConnectionState = createSelector(
 export const lobbySelectors = {
   selectConnectionState,
   selectOnlineUsers,
+  selectOnlineMembers,
   selectMembers,
   selectOwner,
 };

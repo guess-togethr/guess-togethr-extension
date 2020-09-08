@@ -6,6 +6,7 @@ import { enablePatches } from "immer";
 
 enablePatches();
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const debug = Debug("content");
 
 function waitForDom() {

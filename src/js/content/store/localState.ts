@@ -3,6 +3,8 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts } from "../lobbyManager";
 import { SavedLobby } from "../../background/store";
 import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import { RootState } from ".";
+import { selectUser, queryUsers } from "./geoguessrState";
 
 interface LocalState {
   id: string;
@@ -16,7 +18,7 @@ interface LocalState {
 export const createLobby = createAsyncThunk<
   { lobby: LobbyServer | LobbyClient; saveState: SavedLobby },
   LobbyOpts | SavedLobby,
-  { state: any; extra: RemoteBackgroundEndpoint }
+  { state: RootState; extra: RemoteBackgroundEndpoint }
 >("lobby/createLobby", async (opts, store) => {
   let lobby;
 
@@ -26,7 +28,7 @@ export const createLobby = createAsyncThunk<
     lobby = new LobbyClient(store.extra, store, opts as any);
   }
   await lobby.init();
-  if (!store.getState().user) {
+  if (!selectUser(store.getState())) {
     lobby.destroy();
     throw new Error("User logged out!");
   }
@@ -72,10 +74,6 @@ const localState = createSlice({
     },
     leaveLobby: () => null,
   },
-  extraReducers: (builder) =>
-    builder.addCase(createLobby.rejected, (state, action) => {
-      state && (state.error = action.error.message);
-    }),
 });
 
 export const {

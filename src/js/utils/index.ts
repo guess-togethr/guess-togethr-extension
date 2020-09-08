@@ -8,7 +8,6 @@ import {
   Action,
 } from "@reduxjs/toolkit";
 import type { Patch } from "immer";
-import { BackgroundEndpoint } from "../background/background";
 
 type PatchListener = (patches: Patch[]) => void;
 
@@ -43,7 +42,7 @@ export function bufferToBase64(buffer: Uint8Array) {
 
 export function base64ToBuffer(base64: string) {
   return Uint8Array.from(
-    atob(base64.replace(/\-/g, "+").replace(/_/g, "/")),
+    atob(base64.replace(/-/g, "+").replace(/_/g, "/")),
     (c) => c.charCodeAt(0)
   );
 }
@@ -254,31 +253,24 @@ type NonFunctionProperties<T> = {
 export type CachedRemote<
   T,
   CachedProps extends NonFunctionProperties<T>
-> = Omit<Remote<T>, CachedProps> &
-  { [K in CachedProps]: T[K] } & {
-    waitForCache<P extends CachedProps>(props: ReadonlyArray<P>): Promise<void>;
-    waitForCache<P extends CachedProps>(
-      ...props: ReadonlyArray<P>
-    ): Promise<void>;
-  };
+> = Omit<Remote<T>, CachedProps> & { [K in CachedProps]: T[K] };
 
-export function cacheRemoteProperties<T, P extends NonFunctionProperties<T>>(
-  remote: Remote<T>
-): CachedRemote<T, P> {
-  const cache = new Map<keyof T, T[P]>();
+export async function cacheRemoteProperties<
+  T,
+  P extends NonFunctionProperties<T>
+>(remote: Remote<T>, ...props: ReadonlyArray<P>): Promise<CachedRemote<T, P>> {
+  const cache = new Map<keyof T, Remote<T>[P]>();
+  await Promise.all(
+    props.map(async (p) => {
+      cache.set(p, await remote[p]);
+    })
+  );
   return (new Proxy(remote, {
     get: (target, prop: P | keyof T) => {
-      if (prop === "waitForCache") {
-        return (...args: ReadonlyArray<P>) =>
-          Promise.all(
-            args.map((p) =>
-              (target[p] as any).then((v: any) => cache.set(p, v))
-            )
-          );
-      }
-
       if (cache.has(prop)) {
         return cache.get(prop);
+      } else if (prop === "then") {
+        return undefined;
       }
 
       return target[prop];

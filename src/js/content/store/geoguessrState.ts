@@ -2,44 +2,46 @@ import {
   createSlice,
   PayloadAction,
   createAsyncThunk,
-  Middleware,
   createSelector,
+  EntityState,
+  createEntityAdapter,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import { leaveLobby } from "./localState";
 
 interface GeoguessrUser {
   id: string;
+  name: string;
   isPro: boolean;
+  avatar?: string;
 }
 
 interface GeoguessrState {
   url: string;
-  user: GeoguessrUser | false | null;
+  currentUser: GeoguessrUser | false | null;
+  userQueryCache: EntityState<GeoguessrUser | { id: string }>;
 }
 
-const geoguessrSlice = createSlice({
-  name: "geoguessr",
-  initialState: { url: window.location.href, user: null } as GeoguessrState,
-  reducers: {
-    setUrl: (state, action: PayloadAction<string>) => {
-      state.url = action.payload;
-    },
-  },
-  extraReducers: (builder) =>
-    builder.addCase(checkUser.fulfilled, (state, action) => {
-      state.user = action.payload;
-    }),
+const userCacheAdapter = createEntityAdapter<GeoguessrUser | { id: string }>();
+
+export const userCacheSelectors = userCacheAdapter.getSelectors(
+  (state: RootState) => state.geoguessr.userQueryCache
+);
+
+const parseUserResponse = (json: any) => ({
+  id: json.id,
+  name: json.nick,
+  isPro: json.isProUser,
+  avatar: json.pin?.url || undefined,
 });
 
-const checkUser = createAsyncThunk(
+export const checkCurrentUser = createAsyncThunk(
   "geoguessr/setUser",
   async (_, { dispatch }) => {
     const response = await fetch("/api/v3/profiles/");
     if (response.ok) {
       const { user } = await response.json();
-      return { id: user.id, isPro: user.isPro };
+      return parseUserResponse(user);
     }
 
     dispatch(leaveLobby());
@@ -47,24 +49,55 @@ const checkUser = createAsyncThunk(
   }
 );
 
-export const getGeoguessrMiddleware: (
-  backgroundEndpoint: RemoteBackgroundEndpoint
-) => Middleware<{}, RootState, any> = (backgroundEndpoint) => (store) => {
-  backgroundEndpoint.onUrlChange((url) => store.dispatch(setUrl(url)));
-  return (next) => (action) => {
-    if (
-      setUrl.match(action) &&
-      store.getState().geoguessr.url !== action.payload
-    ) {
-      store.dispatch(checkUser());
-    }
-    return next(action);
-  };
-};
+export const queryUsers = createAsyncThunk(
+  "geoguessr/queryUsers",
+  async (ids: string[]) => {
+    return (
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(`/api/v3/users/${id}`);
+          if (response.ok) {
+            const body = await response.json();
+            return parseUserResponse(body);
+          }
+          return false;
+        })
+      )
+    ).filter(Boolean) as GeoguessrUser[];
+  }
+);
+
+const geoguessrSlice = createSlice({
+  name: "geoguessr",
+  initialState: {
+    url: window.location.href,
+    currentUser: null,
+    userQueryCache: userCacheAdapter.getInitialState(),
+  } as GeoguessrState,
+  reducers: {
+    setUrl: (state, action: PayloadAction<string>) => {
+      state.url = action.payload;
+    },
+  },
+  extraReducers: (builder) =>
+    builder
+      .addCase(checkCurrentUser.fulfilled, (state, action) => {
+        state.currentUser = action.payload;
+      })
+      .addCase(queryUsers.pending, (state, action) => {
+        userCacheAdapter.addMany(
+          state.userQueryCache,
+          action.meta.arg.map((id) => ({ id }))
+        );
+      })
+      .addCase(queryUsers.fulfilled, (state, action) => {
+        userCacheAdapter.upsertMany(state.userQueryCache, action.payload);
+      }),
+});
 
 export const selectUser = createSelector(
   (state: RootState) => state.geoguessr,
-  (state) => state.user
+  (state) => state.currentUser
 );
 
 export const selectUrl = createSelector(

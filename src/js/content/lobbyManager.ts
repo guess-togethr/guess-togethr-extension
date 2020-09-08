@@ -99,7 +99,8 @@ class LobbyBase {
   };
 
   protected onPeerMessage(
-    unvalidatedData: any
+    unvalidatedData: any,
+    peerKey: string
   ): unvalidatedData is ClientMessage {
     if (!validateClientMessage(unvalidatedData)) {
       debug("received invalid client message", unvalidatedData);
@@ -119,14 +120,6 @@ class LobbyBase {
 }
 
 export class LobbyClient extends LobbyBase {
-  constructor(
-    backgroundEndpoint: RemoteBackgroundEndpoint,
-    store: MiddlewareAPI,
-    opts: LobbyClientOpts
-  ) {
-    super(backgroundEndpoint, store, opts);
-  }
-
   public async connect() {
     await this.feed.connect();
     // this.store.dispatch(setConnectionState(ConnectionState.GettingInitialData));
@@ -142,23 +135,26 @@ export class LobbyClient extends LobbyBase {
       console.error("Received invalid server message", data);
       return;
     }
-    if (data.type === "state-patch") {
-      this.store.dispatch(applySharedStatePatches(data.payload as Patch[]));
-    } else if (data.type === "set-state") {
-      this.store.dispatch(setInitialSharedState(data.payload as SharedState));
+    switch (data.type) {
+      case "state-patch":
+        this.store.dispatch(applySharedStatePatches(data.payload));
+        break;
+      case "set-state":
+        this.store.dispatch(setInitialSharedState(data.payload));
+        break;
     }
   };
 
   public sendJoin() {
     const state = this.store.getState();
-    if (!state.geoguessr.user) {
+    if (!state.geoguessr.currentUser) {
       throw new Error("Invalid USER??");
     }
     this.sendClientMessage(
       {
         type: "join",
         payload: {
-          ggId: state.geoguessr.user!.id,
+          ggId: state.geoguessr.currentUser!.id,
           publicKey: this.identity.publicKey,
         },
       },
@@ -169,13 +165,6 @@ export class LobbyClient extends LobbyBase {
 
 export class LobbyServer extends LobbyBase {
   private stopPatchTracker: (() => void) | null = null;
-  constructor(
-    backgroundEndpoint: RemoteBackgroundEndpoint,
-    store: MiddlewareAPI,
-    opts: LobbyServerOpts
-  ) {
-    super(backgroundEndpoint, store, opts);
-  }
 
   public destroy() {
     this.stopPatchTracker?.();
@@ -187,7 +176,7 @@ export class LobbyServer extends LobbyBase {
     const latest = await this.buildInitialState();
     if (!latest) {
       const state = this.store.getState();
-      if (!state.geoguessr.user) {
+      if (!state.geoguessr.currentUser) {
         throw new Error("User logged out");
       }
       const newSharedState = {
@@ -195,7 +184,7 @@ export class LobbyServer extends LobbyBase {
         ownerPublicKey: this.identity.publicKey,
         users: [
           {
-            ggId: state.geoguessr.user.id,
+            ggId: state.geoguessr.currentUser.id,
             publicKey: this.identity.publicKey,
           },
         ],
@@ -206,13 +195,25 @@ export class LobbyServer extends LobbyBase {
     this.stopPatchTracker = trackSharedStatePatches(this.onPatches);
   }
 
-  protected onPeerMessage(data: any): data is ClientMessage {
-    if (!super.onPeerMessage(data)) {
+  protected onPeerMessage(data: any, peerKey: string): data is ClientMessage {
+    if (!super.onPeerMessage(data, peerKey)) {
       return false;
     }
 
     if (data.type === "join") {
       this.store.dispatch(addJoinRequest(data.payload as User));
+    }
+
+    switch (data.type) {
+      case "join":
+        if (data.payload.publicKey !== peerKey) {
+          return false;
+        }
+
+        this.store.dispatch(addJoinRequest(data.payload));
+        break;
+      default:
+        return false;
     }
 
     return true;
