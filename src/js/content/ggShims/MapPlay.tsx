@@ -1,8 +1,7 @@
 import { makeStyles } from "@material-ui/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAppDispatch, useAppSelector, useExternalDom } from "../hooks";
-import { selectUrl } from "../store/geoguessrState";
+import { useAppDispatch, useExternalDom } from "../hooks";
 import { setNewChallenge } from "../store/sharedState";
 
 function unselect(el: Element) {
@@ -89,28 +88,18 @@ const useChallengeIdMonitor = (gameSettings: HTMLDivElement | null) => {
 };
 
 const MapPlayShim = () => {
-  const url = useAppSelector(selectUrl);
   const dispatch = useAppDispatch();
   const classes = useStyles();
-  const [gameSettings, setGameSettings] = useState<HTMLDivElement | null>(null);
+  const gameSettings = useExternalDom(
+    document,
+    "article.game-settings",
+    true
+  ) as HTMLDivElement | null;
   const timeLimit = useSliderMonitor(gameSettings);
   const [startLobby, setStartLobby] = useState(false);
   const selected = useRef(false);
   const challengeId = useChallengeIdMonitor(startLobby ? gameSettings : null);
   const newButton = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    const urlObj = new URL(url);
-    if (
-      urlObj.hostname === "www.geoguessr.com" &&
-      /^\/maps\/[^/]+\/play$/.test(urlObj.pathname)
-    ) {
-      setGameSettings(
-        document.querySelector("article.game-settings") as HTMLDivElement | null
-      );
-      return () => setGameSettings(null);
-    }
-  }, [url]);
 
   useEffect(() => {
     const radioBoxes = gameSettings?.querySelector("div.radio-boxes");
@@ -141,8 +130,9 @@ const MapPlayShim = () => {
 
       gameSettings.classList.add(classes.hideNew);
 
+      // class attribute modification happens asynchronously
       const mo = new MutationObserver((changes) =>
-        changes.forEach(({ type, target, attributeName }) => {
+        changes.forEach(({ target }) => {
           if (
             target instanceof Element &&
             target.className.includes("radio-box--selected") &&
@@ -182,7 +172,11 @@ const MapPlayShim = () => {
         mo.disconnect();
         newButton.current?.parentNode?.removeChild(newButton.current);
         newBox.parentNode?.removeChild(newBox);
-        gameSettings.classList.remove(classes.hideOriginal);
+        gameSettings.classList.remove(
+          classes.hideOriginal,
+          classes.hideNew,
+          classes.hideAllSettings
+        );
         selected.current && select(challengeBox);
       };
     }

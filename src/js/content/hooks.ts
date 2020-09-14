@@ -94,20 +94,28 @@ export const useUserMonitor = () => {
 
 export const useExternalDom = (
   root: Element | Document | null,
-  selector: string
+  selector: string,
+  oneShot: boolean = false
 ) => {
   const [foundNode, setFoundNode] = useState<Element | null>(
     () => root?.querySelector(selector) ?? null
   );
   useEffect(() => {
-    if (root) {
-      const mo = new MutationObserver(() =>
-        setFoundNode(root.querySelector(selector))
-      );
+    if (root && (!oneShot || !foundNode)) {
+      let mo: MutationObserver | null = new MutationObserver(() => {
+        const node = root.querySelector(selector);
+        if (node) {
+          setFoundNode(node);
+          if (oneShot) {
+            mo?.disconnect();
+            mo = null;
+          }
+        }
+      });
       mo.observe(root, { subtree: true, attributes: true, childList: true });
-      return () => mo.disconnect();
+      return () => mo?.disconnect();
     }
-  }, [root, selector]);
+  }, [root, selector, oneShot, foundNode]);
 
   return foundNode;
 };
