@@ -6,19 +6,27 @@ import { ConnectionState } from "../store/lobbyState";
 export default {
   unconnected: (
     <Toolbar
-      lobbies={Array.from({ length: 5 }, () => ({
-        id: faker.random.word(),
-        name: faker.random.word(),
-      }))}
-      onCreate={() => {}}
+      lobbies={Array.from({ length: 5 }, () => {
+        const id = faker.random.word();
+        return {
+          id,
+          name: id,
+        };
+      })}
+      onCreate={alert}
+      user
     />
   ),
   connected: (
     <Toolbar
-      lobbies={Array.from({ length: 5 }, () => ({
-        id: faker.random.word(),
-        name: faker.random.word(),
-      }))}
+      startOpen
+      lobbies={Array.from({ length: 5 }, () => {
+        const id = faker.random.word();
+        return {
+          id,
+          name: id,
+        };
+      })}
       currentLobby={{
         connectionState: faker.random.number(
           Object.keys(ConnectionState).length / 2 - 1

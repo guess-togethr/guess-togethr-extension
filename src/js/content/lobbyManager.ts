@@ -1,9 +1,4 @@
-import {
-  ClientMessage,
-  SharedState,
-  User,
-  ServerMessage,
-} from "../protocol/schema";
+import { ClientMessage, User, ServerMessage } from "../protocol/schema";
 import { Patch, applyPatches } from "immer";
 import { Remote, proxy, releaseProxy } from "comlink";
 import { NetworkFeed } from "../background/network";
@@ -14,8 +9,11 @@ import {
   applySharedStatePatches,
   trackSharedStatePatches,
 } from "./store/sharedState";
-import { AppDispatch, RootState } from "./store";
-import { userConnected, userDisconnected } from "./store/localState";
+import {
+  BreakCycleRootState,
+  userConnected,
+  userDisconnected,
+} from "./store/localState";
 import { addJoinRequest } from "./store/lobbyState";
 import { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
@@ -43,7 +41,7 @@ class LobbyBase {
   public identity!: Identity;
   constructor(
     private readonly backgroundEndpoint: RemoteBackgroundEndpoint,
-    protected readonly store: MiddlewareAPI<AppDispatch, RootState>,
+    protected readonly store: MiddlewareAPI<any, BreakCycleRootState>,
     private readonly opts: LobbyOpts
   ) {}
 
@@ -224,6 +222,7 @@ export class LobbyServer extends LobbyBase {
   }
 
   private onPatches = (patches: Patch[]) => {
-    this.writeToFeed({ type: "state-patch", payload: patches });
+    patches.length &&
+      this.writeToFeed({ type: "state-patch", payload: patches });
   };
 }

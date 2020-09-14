@@ -19,8 +19,8 @@ var copyPluginIndex = config.plugins.findIndex(
   (p) => p instanceof CopyWebpackPlugin
 );
 if (copyPluginIndex !== -1) {
-  config.plugins[copyPluginIndex] = new CopyWebpackPlugin(
-    [
+  config.plugins[copyPluginIndex] = new CopyWebpackPlugin({
+    patterns: [
       {
         from: "./manifest.json",
         transform: function (content) {
@@ -46,10 +46,7 @@ if (copyPluginIndex !== -1) {
         },
       },
     ],
-    {
-      copyUnmodified: true,
-    }
-  );
+  });
 }
 
 var compiler = webpack(config);

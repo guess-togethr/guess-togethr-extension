@@ -1,9 +1,25 @@
-import React, { useMemo } from "react";
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  RefObject,
+} from "react";
 import { ConnectionState } from "../store/lobbyState";
-import { Button, makeStyles, TextField, ListItem } from "@material-ui/core";
-import Growable from "../containers/Growable";
+import {
+  Button,
+  makeStyles,
+  ListItem,
+  InputAdornment,
+  IconButton,
+  Tooltip,
+} from "@material-ui/core";
+import Growable from "./Growable";
 import ToolbarHeader from "./ToolbarHeader";
 import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
+import { Assignment } from "@material-ui/icons";
+import TextField from "./TextField";
 
 const useStyles = makeStyles({
   outerContainer: {
@@ -26,8 +42,10 @@ export interface CurrentLobbyProps extends OnlineUsersProps {
   name: string;
   connectionState: ConnectionState;
   inviteUrl: string;
+  expanded: boolean;
   onHeaderClick: () => void;
   onLeave?: () => void;
+  rootRef?: RefObject<HTMLDivElement>;
 }
 
 const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
@@ -37,7 +55,9 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
     connectionState,
     inviteUrl,
     onHeaderClick,
+    expanded,
     onLeave,
+    rootRef,
   } = props;
   const classes = useStyles();
   const connectionLabel = useMemo(() => {
@@ -55,6 +75,31 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
         return "Error!";
     }
   }, [connectionState]);
+
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onClipboardClick = useCallback(() => {
+    inputRef.current?.select();
+    document.execCommand("copy");
+    setTooltipOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (tooltipOpen && expanded) {
+      let timer: any = setTimeout(() => {
+        setTooltipOpen(false);
+        timer = null;
+      }, 2000);
+      return () => {
+        if (timer) {
+          setTooltipOpen(false);
+          clearTimeout(timer);
+        }
+      };
+    }
+  }, [tooltipOpen, expanded]);
+
   return (
     <div className={classes.outerContainer}>
       <ToolbarHeader
@@ -62,35 +107,49 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
         secondary={connectionLabel}
         onClick={onHeaderClick}
         className={classes.toolbarHeader}
-      />
-      <div className={classes.outerContainer}>
-        <Growable>
-          <OnlineUsers onlineUsers={onlineUsers} />
-        </Growable>
-        <ListItem>
-          <Growable>
-            <TextField
-              fullWidth
-              inputProps={{
-                readOnly: true,
-                onClick: (event) => event.stopPropagation(),
-                onMouseDown: (event) => event.stopPropagation(),
-                onFocus: (event) => event.currentTarget.select(),
-                onBlur: (event) => event.currentTarget.setSelectionRange(0, 1),
-              }}
-              variant="filled"
-              size="small"
-              label="Invite Link"
-              defaultValue={inviteUrl}
-            />
+      >
+        <div className={classes.outerContainer}>
+          <Growable intersectionProps={{ root: rootRef?.current }}>
+            <OnlineUsers onlineUsers={onlineUsers} />
           </Growable>
-        </ListItem>
-        <Growable>
-          <Button color="secondary" className={classes.leaveButton}>
-            Leave Lobby
-          </Button>
-        </Growable>
-      </div>
+          <ListItem>
+            <Growable intersectionProps={{ root: rootRef?.current }}>
+              <TextField
+                fullWidth
+                inputRef={inputRef}
+                InputProps={{
+                  readOnly: true,
+                  onFocus: (event) => event.currentTarget.select(),
+                  onBlur: (event) => event.currentTarget.blur(),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title="Link copied!" open={tooltipOpen}>
+                        <IconButton onClick={onClipboardClick}>
+                          <Assignment />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  ),
+                  style: { paddingRight: 4 },
+                }}
+                variant="filled"
+                size="small"
+                label="Invite Link"
+                defaultValue={inviteUrl}
+              />
+            </Growable>
+          </ListItem>
+          <Growable intersectionProps={{ root: rootRef?.current }}>
+            <Button
+              color="secondary"
+              className={classes.leaveButton}
+              onClick={onLeave}
+            >
+              Leave Lobby
+            </Button>
+          </Growable>
+        </div>
+      </ToolbarHeader>
     </div>
   );
 };

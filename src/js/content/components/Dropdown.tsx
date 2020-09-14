@@ -1,19 +1,19 @@
-import React, { useRef, useCallback } from "react";
+import React, { useCallback, PropsWithChildren } from "react";
 import { Collapse, List, ClickAwayListener } from "@material-ui/core";
-import Growable from "../containers/Growable";
+import Growable from "./Growable";
+import { TransitionGroup } from "react-transition-group";
 
 interface DropdownProps {
-  mainChild: React.ReactElement;
   open: boolean;
-  children: React.ReactElement[];
   onClose?: () => void;
   collapsedHeight: number;
 }
 
-const Dropdown: React.FunctionComponent<DropdownProps> = (props) => {
-  const { onClose, mainChild, open, children, collapsedHeight } = props;
-
-  const collapseRef = useRef<Element>();
+const Dropdown = React.forwardRef<
+  HTMLDivElement,
+  PropsWithChildren<DropdownProps>
+>((props, ref) => {
+  const { onClose, open, children, collapsedHeight } = props;
 
   const onClickAway = useCallback(() => {
     if (open) {
@@ -21,29 +21,42 @@ const Dropdown: React.FunctionComponent<DropdownProps> = (props) => {
     }
   }, [open, onClose]);
 
+  const childrenArray = React.Children.toArray(children);
+  const mainChild = childrenArray[0];
+  const otherChildren = childrenArray.slice(1);
+
   return (
     <ClickAwayListener onClickAway={onClickAway}>
       <Collapse
-        style={{ width: 256 }}
+        style={{ width: 256, margin: "2px 0" }}
         collapsedHeight={collapsedHeight}
         in={open}
-        ref={collapseRef}
+        ref={ref}
       >
         <List style={{ padding: 0 }}>
           {mainChild}
-          {React.Children.map(children, (child) =>
-            React.isValidElement(child) ? (
-              <Growable root={collapseRef.current} threshold={0.9}>
-                {child}
-              </Growable>
-            ) : (
-              child
-            )
-          )}
+          <TransitionGroup component={null}>
+            {otherChildren.map((child) =>
+              React.isValidElement(child) ? (
+                <Growable
+                  intersectionProps={{
+                    root: ref && "current" in ref ? ref.current : null,
+                    threshold: 0.9,
+                  }}
+                  key={child.key ?? undefined}
+                  exitTransition={Collapse}
+                >
+                  {child}
+                </Growable>
+              ) : (
+                child
+              )
+            )}
+          </TransitionGroup>
         </List>
       </Collapse>
     </ClickAwayListener>
   );
-};
+});
 
 export default Dropdown;

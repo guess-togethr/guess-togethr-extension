@@ -15,7 +15,7 @@ const useStyles = makeStyles({
 });
 
 export interface OnlineUsersProps {
-  onlineUsers: { id: string; name: string }[];
+  onlineUsers: { id: string; name: string; avatar?: string }[];
   style?: CSSProperties;
 }
 
@@ -35,7 +35,9 @@ const OnlineUsers = React.forwardRef<HTMLDivElement, OnlineUsersProps>(
         {onlineUsers.length ? (
           <AvatarGroup max={3} style={{ marginRight: 8 }}>
             {onlineUsers.map((u) => (
-              <Avatar key={u.id}>{u.name[0]}</Avatar>
+              <Avatar key={u.id} src={u.avatar}>
+                {u.name[0]}
+              </Avatar>
             ))}
           </AvatarGroup>
         ) : undefined}
@@ -47,4 +49,4 @@ const OnlineUsers = React.forwardRef<HTMLDivElement, OnlineUsersProps>(
   }
 );
 
-export default OnlineUsers;
+export default React.memo(OnlineUsers);

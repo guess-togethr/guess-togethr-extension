@@ -36,7 +36,7 @@ export class BackgroundEndpoint {
     }: WebNavigation.OnHistoryStateUpdatedDetailsType) =>
       tabId === this.tabId && cb(url);
     browser.webNavigation.onHistoryStateUpdated.addListener(listener, {
-      url: [{ urlEquals: "https://www.geoguessr.com/" }],
+      url: [{ hostContains: ".geoguessr.com" }],
     });
     this.urlListeners.push(() => (cb as any)[Comlink.releaseProxy]());
   }
@@ -45,7 +45,7 @@ export class BackgroundEndpoint {
     return Comlink.proxy(new NetworkFeed(opts));
   }
 
-  private onTabClose = (tabId: number) => {
+  private onTabClose = (tabId?: number) => {
     if (tabId === this.tabId) {
       this.store?.dispatch(releaseSavedLobby());
       browser.tabs.onRemoved.removeListener(this.onTabClose);
@@ -55,6 +55,7 @@ export class BackgroundEndpoint {
   public destroy() {
     this.urlListeners.forEach((l) => l());
     this.urlListeners.length = 0;
+    debug("destroy");
   }
 }
 

@@ -21,9 +21,11 @@ import {
 } from "redux-persist";
 import { localStorage as persistLocalStorage } from "redux-persist-webextension-storage";
 import { browser } from "webextension-polyfill-ts";
+import logger from "redux-logger";
 
 export interface SavedLobby {
   id: string;
+  user: string;
   name?: string;
   isServer: boolean;
   identity: { publicKey: string; privateKey: string };
@@ -69,6 +71,7 @@ const savedLobbies = createSlice({
         delete existingLobby.tabId;
       }
     },
+    updateSavedLobby: savedLobbyAdapter.updateOne,
   },
 });
 
@@ -92,7 +95,11 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
       if (lobby.tabId === (action as any).meta.tabId) {
         throw new Error("Double join");
       }
-      browser.tabs.highlight({ tabs: lobby.tabId });
+      browser.tabs
+        .get(lobby.tabId)
+        .then(({ index, windowId }) =>
+          browser.tabs.highlight({ windowId, tabs: index })
+        );
       return false;
     }
     next(action);
@@ -114,12 +121,13 @@ function createStore() {
           >(
             (state) =>
               createNextState(state, (draft) => {
+                console.log("WHAAAAT", draft);
                 savedLobbyLocalSelector
                   .selectAll(draft)
-                  .forEach((e) => delete e?.tabId);
+                  .forEach((e) => delete e.tabId);
               }),
             (state) => state,
-            { whitelist: ["savedLobbies"] }
+            { whitelist: ["allLobbies"] }
           ),
         ],
       },
@@ -130,7 +138,7 @@ function createStore() {
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
         },
-      }).concat(lobbyMiddleware),
+      }).concat(logger, lobbyMiddleware),
   });
   return new Promise<typeof store>((resolve) =>
     persistStore(store, null, () => resolve(store))
@@ -143,5 +151,6 @@ export const {
   setMostRecentSavedLobby,
   claimSavedLobby,
   releaseSavedLobby,
+  updateSavedLobby,
 } = savedLobbies.actions;
 export { savedLobbySelector, createStore };

@@ -73,7 +73,7 @@ const addJoinRequest = createAsyncThunk<User, User, { state: RootState }>(
   "lobby/addJoinRequest",
   async (user: User, { dispatch, getState }) => {
     if (!userCacheSelectors.selectById(getState(), user.ggId)) {
-      await dispatch(queryUsers([user.ggId])).then(unwrapResult);
+      await dispatch(queryUsers([user.ggId]));
     }
 
     return user;

@@ -1,10 +1,10 @@
 import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { LobbyClient, LobbyServer, LobbyOpts } from "../lobbyManager";
+import { LobbyClient, LobbyServer, LobbyOpts, Identity } from "../lobbyManager";
 import { SavedLobby } from "../../background/store";
 import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import { RootState } from ".";
-import { selectUser, queryUsers } from "./geoguessrState";
+import { selectUser } from "./geoguessrState";
 
 interface LocalState {
   id: string;
@@ -15,10 +15,12 @@ interface LocalState {
   joinRequests: User[];
 }
 
+export interface BreakCycleRootState extends RootState {}
+
 export const createLobby = createAsyncThunk<
   { lobby: LobbyServer | LobbyClient; saveState: SavedLobby },
   LobbyOpts | SavedLobby,
-  { state: RootState; extra: RemoteBackgroundEndpoint }
+  { state: BreakCycleRootState; extra: RemoteBackgroundEndpoint }
 >("lobby/createLobby", async (opts, store) => {
   let lobby;
 
@@ -28,12 +30,14 @@ export const createLobby = createAsyncThunk<
     lobby = new LobbyClient(store.extra, store, opts as any);
   }
   await lobby.init();
-  if (!selectUser(store.getState())) {
+  const user = selectUser(store.getState());
+  if (!user) {
     lobby.destroy();
     throw new Error("User logged out!");
   }
   const ret: SavedLobby = {
     id: lobby.id,
+    user: user.id,
     identity: lobby.identity,
     isServer: lobby instanceof LobbyServer,
     name: "name" in opts ? opts.name : undefined,
@@ -54,12 +58,13 @@ const localState = createSlice({
         id: string;
         isServer: boolean;
         name?: string;
+        identity: Identity;
       }>
     ) => ({
       id: action.payload.id,
       isServer: action.payload.isServer,
       name: action.payload.name,
-      onlineUsers: [],
+      onlineUsers: [action.payload.identity.publicKey],
       joinRequests: [],
     }),
     userConnected: (state, action: PayloadAction<string>) => {
@@ -74,6 +79,10 @@ const localState = createSlice({
     },
     leaveLobby: () => null,
   },
+  extraReducers: (builder) =>
+    builder.addCase(createLobby.rejected, (state, action) => {
+      state && (state.error = action.error.message);
+    }),
 });
 
 export const {

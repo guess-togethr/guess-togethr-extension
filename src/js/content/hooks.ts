@@ -20,9 +20,10 @@ import {
   shallowEqual,
   useDispatch,
 } from "react-redux";
-import { RootState } from "./store";
+import { AppDispatch, RootState } from "./store";
 import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
-import { selectUrl, checkCurrentUser } from "./store/geoguessrState";
+import { selectUrl, checkCurrentUser, setUrl } from "./store/geoguessrState";
+import { proxy } from "comlink";
 
 export const BackgroundStoreContext: any = createContext(null);
 
@@ -40,6 +41,8 @@ export const useBackgroundSelector: <TSelected>(
 export const useBackgroundDispatch: () => BackgroundDispatch = createDispatchHook(
   BackgroundStoreContext
 );
+
+export const useAppDispatch: () => AppDispatch = useDispatch;
 
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
@@ -71,6 +74,14 @@ export const useDimensions = () => {
   }, []);
 
   return [ref, dimensions];
+};
+
+export const useUrlMonitor = () => {
+  const backgroundEndpoint = useBackgroundEndpoint();
+  const dispatch = useDispatch();
+  useEffect(() => {
+    backgroundEndpoint?.onUrlChange(proxy((url) => dispatch(setUrl(url))));
+  }, [backgroundEndpoint, dispatch]);
 };
 
 export const useUserMonitor = () => {

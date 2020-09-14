@@ -1,18 +1,27 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import Dropdown from "./Dropdown";
 import { ConnectionState } from "../store/lobbyState";
 import {
-  ListItemIcon,
-  SvgIcon,
-  ListItemText,
-  ListItem,
   makeStyles,
   ListSubheader,
   Paper,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  IconButton,
 } from "@material-ui/core";
 import CurrentLobby from "./CurrentLobby";
-import LogoIcon from "./LogoIcon";
 import ToolbarHeader from "./ToolbarHeader";
+import CreateNew from "./CreateNew";
+import SavedLobby, { SavedLobbyHeader } from "./SavedLobby";
+import { Edit } from "@material-ui/icons";
+import SignedOut from "./SignedOut";
 
 const useStyles = makeStyles({
   mainListItem: {
@@ -29,62 +38,88 @@ interface ToolbarProps {
   };
   lobbies: { id: string; name?: string }[];
   onCreate?: () => void;
+  startOpen?: boolean;
+  user?: boolean;
 }
 
-const Toolbar = ({ currentLobby, lobbies, onCreate }: ToolbarProps) => {
-  const classes = useStyles();
-  const [open, setOpen] = useState(false);
-  // const logoColor = useMemo(() => {
-  //   if (!currentLobby) {
-  //     return "white";
-  //   }
-
-  //   switch (currentLobby.connectionState) {
-  //     case ConnectionState.Connected:
-  //       return "green";
-  //     case ConnectionState.Error:
-  //       return "red";
-  //     case ConnectionState.Connecting:
-  //     case ConnectionState.GettingInitialData:
-  //     case ConnectionState.WaitingForHost:
-  //     case ConnectionState.WaitingForJoin:
-  //       return "blue";
-  //     default:
-  //       return "white";
-  //   }
-  // }, [currentLobby]);
+const Toolbar = ({
+  currentLobby,
+  lobbies,
+  onCreate,
+  startOpen,
+  user,
+}: ToolbarProps) => {
+  const [open, setOpen] = useState(startOpen === true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const onMainClick = useCallback(() => setOpen((isOpen) => !isOpen), []);
+  const classes = useStyles();
   const mainChild = useMemo(
-    () => (
-      <Paper>
-        {currentLobby ? (
-          <CurrentLobby {...currentLobby} onHeaderClick={onMainClick} />
-        ) : (
-          <ToolbarHeader primary="GuessTogethr" onClick={onMainClick} />
-        )}
-      </Paper>
-    ),
-    [onMainClick, currentLobby]
+    () =>
+      currentLobby ? (
+        <CurrentLobby
+          key="current-lobby"
+          {...currentLobby}
+          onHeaderClick={onMainClick}
+          expanded={open}
+        />
+      ) : (
+        <ToolbarHeader
+          key="banner"
+          primary="GuessTogethr"
+          onClick={onMainClick}
+        >
+          {!user ? <SignedOut /> : null}
+        </ToolbarHeader>
+      ),
+    [onMainClick, currentLobby, open, user]
   );
+
+  const onDelete = useCallback(
+    (id) => setLobbyState((lobbies) => lobbies.filter((l) => l.id !== id)),
+    []
+  );
+
+  const [lobbyState, setLobbyState] = useState(lobbies);
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    if (lobbyState.length === 0 || !open) setEditMode(false);
+  }, [lobbyState.length, open]);
 
   return (
     <Dropdown
+      ref={dropdownRef}
       open={open}
-      mainChild={mainChild}
       collapsedHeight={44}
       onClose={() => setOpen(false)}
     >
-      {(lobbies.length
-        ? [<ListSubheader>Saved Lobbies</ListSubheader>].concat(
-            lobbies.map((l) => (
-              <ListItem key={l.id} button>
-                <ListItemText inset>{l.name}</ListItemText>
-              </ListItem>
-            ))
-          )
-        : []
-      ).concat(onCreate ? [<ListSubheader>Create New</ListSubheader>] : [])}
+      {[mainChild].concat(
+        (lobbyState.length
+          ? [
+              // <ListSubheader key="saved-subheader">
+              //   Saved Lobbies
+              // </ListSubheader>,
+              <SavedLobbyHeader
+                key="savedlobby-header"
+                onEditClick={() => setEditMode((e) => !e)}
+              />,
+            ].concat(
+              lobbyState.map((lobby) => (
+                <SavedLobby
+                  key={lobby.id}
+                  id={lobby.id}
+                  name={lobby.name}
+                  onClick={alert}
+                  onDelete={editMode ? onDelete : undefined}
+                />
+              ))
+            )
+          : []
+        ).concat(
+          onCreate ? [<CreateNew key="yoooo" isPro onCreate={onCreate} />] : []
+        )
+      )}
     </Dropdown>
   );
 };

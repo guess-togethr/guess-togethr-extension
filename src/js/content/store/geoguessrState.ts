@@ -25,14 +25,16 @@ interface GeoguessrState {
 const userCacheAdapter = createEntityAdapter<GeoguessrUser | { id: string }>();
 
 export const userCacheSelectors = userCacheAdapter.getSelectors(
-  (state: RootState) => state.geoguessr.userQueryCache
+  (state: { geoguessr: GeoguessrState }) => state.geoguessr.userQueryCache
 );
 
 const parseUserResponse = (json: any) => ({
   id: json.id,
   name: json.nick,
   isPro: json.isProUser,
-  avatar: json.pin?.url || undefined,
+  avatar: json.pin?.url
+    ? `/images/auto/48/48/ce/0/plain/${json.pin.url}`
+    : undefined,
 });
 
 export const checkCurrentUser = createAsyncThunk(
@@ -49,23 +51,26 @@ export const checkCurrentUser = createAsyncThunk(
   }
 );
 
-export const queryUsers = createAsyncThunk(
-  "geoguessr/queryUsers",
-  async (ids: string[]) => {
-    return (
-      await Promise.all(
-        ids.map(async (id) => {
-          const response = await fetch(`/api/v3/users/${id}`);
-          if (response.ok) {
-            const body = await response.json();
-            return parseUserResponse(body);
-          }
-          return false;
-        })
-      )
-    ).filter(Boolean) as GeoguessrUser[];
-  }
-);
+export const queryUsers = createAsyncThunk<
+  GeoguessrUser[],
+  string[],
+  { state: { geoguessr: GeoguessrState } }
+>("geoguessr/queryUsers", async (ids, { getState }) => {
+  const existingEntities = userCacheSelectors.selectEntities(getState());
+  const filteredIds = ids.filter((id) => !existingEntities[id]);
+  return (
+    await Promise.all(
+      filteredIds.map(async (id) => {
+        const response = await fetch(`/api/v3/users/${id}`);
+        if (response.ok) {
+          const body = await response.json();
+          return parseUserResponse(body);
+        }
+        return false;
+      })
+    )
+  ).filter(Boolean) as GeoguessrUser[];
+});
 
 const geoguessrSlice = createSlice({
   name: "geoguessr",
@@ -83,6 +88,8 @@ const geoguessrSlice = createSlice({
     builder
       .addCase(checkCurrentUser.fulfilled, (state, action) => {
         state.currentUser = action.payload;
+        action.payload &&
+          userCacheAdapter.upsertOne(state.userQueryCache, action.payload);
       })
       .addCase(queryUsers.pending, (state, action) => {
         userCacheAdapter.addMany(

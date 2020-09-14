@@ -1,7 +1,14 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  PayloadAction,
+  ActionCreator,
+  ThunkAction,
+} from "@reduxjs/toolkit";
 import { SharedState } from "../../protocol/schema";
 import { applyPatches, Patch } from "immer";
 import { trackPatches } from "../../utils";
+import { RootState } from ".";
+import { queryUsers } from "./geoguessrState";
 
 const sharedState = createSlice({
   name: "sharedState",
@@ -21,8 +28,15 @@ const [sharedStateReducer, trackSharedStatePatches] = trackPatches(
 
 export { trackSharedStatePatches };
 
-export const {
-  setInitialSharedState,
-  applySharedStatePatches,
-} = sharedState.actions;
+export const setInitialSharedState: ActionCreator<ThunkAction<
+  void,
+  RootState,
+  any,
+  PayloadAction<SharedState>
+>> = (initialState: SharedState) => (dispatch) => {
+  dispatch(sharedState.actions.setInitialSharedState(initialState));
+  dispatch(queryUsers(initialState.users.map(({ ggId }) => ggId)));
+};
+
+export const { applySharedStatePatches } = sharedState.actions;
 export default sharedStateReducer;

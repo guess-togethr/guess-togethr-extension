@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
+// Must be imported before any other components
+import "@material-ui/core/ScopedCssBaseline";
 import Debug from "debug";
 import App from "./App";
 import { enablePatches } from "immer";
@@ -35,6 +37,8 @@ function waitForDom() {
       observer.observe(toolbarParent, {
         childList: true,
       });
+    } else {
+      resolve(toolbarParent);
     }
   });
 }
