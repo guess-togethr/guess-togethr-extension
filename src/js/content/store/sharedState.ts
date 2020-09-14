@@ -19,6 +19,12 @@ const sharedState = createSlice({
     },
     setInitialSharedState: (state, action: PayloadAction<SharedState>) =>
       action.payload,
+    setNewChallenge: (
+      state,
+      action: PayloadAction<{ id: string; timeLimit: number }>
+    ) => {
+      state && (state.currentChallenge = { ...action.payload, round: 0 });
+    },
   },
 });
 
@@ -38,5 +44,5 @@ export const setInitialSharedState: ActionCreator<ThunkAction<
   dispatch(queryUsers(initialState.users.map(({ ggId }) => ggId)));
 };
 
-export const { applySharedStatePatches } = sharedState.actions;
+export const { applySharedStatePatches, setNewChallenge } = sharedState.actions;
 export default sharedStateReducer;

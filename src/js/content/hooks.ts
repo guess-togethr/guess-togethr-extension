@@ -91,3 +91,23 @@ export const useUserMonitor = () => {
     dispatch(checkCurrentUser());
   }, [url, dispatch]);
 };
+
+export const useExternalDom = (
+  root: Element | Document | null,
+  selector: string
+) => {
+  const [foundNode, setFoundNode] = useState<Element | null>(
+    () => root?.querySelector(selector) ?? null
+  );
+  useEffect(() => {
+    if (root) {
+      const mo = new MutationObserver(() =>
+        setFoundNode(root.querySelector(selector))
+      );
+      mo.observe(root, { subtree: true, attributes: true, childList: true });
+      return () => mo.disconnect();
+    }
+  }, [root, selector]);
+
+  return foundNode;
+};
