@@ -1,24 +1,28 @@
 import React, { useEffect, useMemo } from "react";
 import { AppDispatch } from "../store";
 import { useDispatch } from "react-redux";
-import { createLobby, lobbySelectors } from "../store/lobbyState";
+import { createLobby } from "../store/lobbyState";
 import {
   releaseSavedLobby,
-  SavedLobby,
   updateSavedLobby,
+  FullSavedLobby,
 } from "../../background/store";
 import { useAppSelector, useBackgroundDispatch } from "../hooks";
 import { leaveLobby } from "../store/localState";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import { queryUsers, userCacheSelectors } from "../store/geoguessrState";
 import Shims from "../ggShims";
+import {
+  selectOnlineMembers,
+  selectConnectionState,
+} from "../store/lobbySelectors";
 
 interface CurrentLobbyContainerProps
   extends Omit<
     CurrentLobbyProps,
     "name" | "connectionState" | "inviteUrl" | "onlineUsers"
   > {
-  claimedLobby: SavedLobby;
+  claimedLobby: FullSavedLobby;
 }
 
 const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
@@ -29,9 +33,11 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
 
   const connectedLobby = useAppSelector((state) => state.lobby?.localState);
   const connectedLobbyId = connectedLobby?.id;
-  const connectedLobbyName = connectedLobby?.name;
+  const connectedLobbyName = useAppSelector(
+    (state) => state.lobby?.sharedState?.name
+  );
 
-  const onlineMembers = useAppSelector(lobbySelectors.selectOnlineMembers);
+  const onlineMembers = useAppSelector(selectOnlineMembers);
   const userCache = useAppSelector(userCacheSelectors.selectEntities);
 
   const onlineUsersMemo = useMemo(
@@ -53,7 +59,7 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
     [onlineMembers, userCache]
   );
 
-  const connectionState = useAppSelector(lobbySelectors.selectConnectionState);
+  const connectionState = useAppSelector(selectConnectionState);
 
   // Update the saved lobby name once we get it
   useEffect(() => {
@@ -93,9 +99,9 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
   return (
     <>
       <CurrentLobby
-        name={claimedLobby.name ?? "Unknown"}
+        name={claimedLobby.name ?? "Unnamed Lobby"}
         connectionState={connectionState}
-        inviteUrl={`https://www.geoguessr.com/?join=${claimedLobby.id}`}
+        inviteUrl={`https://guess-togethr.github.io/?join=${claimedLobby.id}`}
         onlineUsers={onlineUsersMemo}
         onLeave={() => backgroundDispatch(releaseSavedLobby())}
         {...rest}

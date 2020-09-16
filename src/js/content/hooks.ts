@@ -119,3 +119,18 @@ export const useExternalDom = (
 
   return foundNode;
 };
+
+export const useJoin = () => {
+  const url = useAppSelector(selectUrl);
+  const [joinId, setJoinId] = useState<string | null>(null);
+  useEffect(() => {
+    const parsedUrl = new URL(url);
+    const id = parsedUrl.searchParams.get("join");
+    if (parsedUrl.hostname === "www.geoguessr.com" && id) {
+      setJoinId(id);
+      parsedUrl.searchParams.delete("join");
+      window.location.href = parsedUrl.href;
+    }
+  }, [url]);
+  return joinId;
+};

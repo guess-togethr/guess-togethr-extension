@@ -1,25 +1,54 @@
 import sodium from "./sodium_shim";
-import { Remote, proxy, transferHandlers } from "comlink";
+import { Remote, proxy, transferHandlers, releaseProxy } from "comlink";
 import {
   Store,
   AnyAction,
   Reducer,
   createNextState,
   Action,
+  ReducersMapObject,
+  StateFromReducersMapObject,
+  ActionFromReducersMapObject,
+  CombinedState,
 } from "@reduxjs/toolkit";
-import type { Patch } from "immer";
+import { Patch, Draft, isDraft, isDraftable } from "immer";
+
+type DraftableReducer<S, A = AnyAction> = (
+  state: undefined | Draft<S>,
+  action: A
+) => S | void;
 
 type PatchListener = (patches: Patch[]) => void;
 
+function arraysEqual<T = any>(
+  array1: ReadonlyArray<T>,
+  array2: ReadonlyArray<T>
+) {
+  return (
+    array1.length === array2.length &&
+    array1.every((el, index) => array2[index] === el)
+  );
+}
+
 export function trackPatches<S, A extends Action<any>>(
-  reducer: Reducer<S, A>
+  reducer: Reducer<S, A> | DraftableReducer<S, A>,
+  pathFilter?: Patch["path"]
 ): [Reducer<S, A>, (listener: PatchListener) => () => void] {
   const listeners = new Set<PatchListener>();
   const newReducer = ((state, action) =>
     createNextState(
       state,
       (draft) => reducer(draft as any, action),
-      (patches) => listeners.forEach((l) => l(patches))
+      (patches) => {
+        const filteredPatches = pathFilter
+          ? patches.filter(
+              ({ path }) =>
+                arraysEqual(path.slice(0, pathFilter.length), pathFilter) &&
+                path.length > pathFilter.length
+            )
+          : patches;
+        filteredPatches.length && listeners.forEach((l) => l(filteredPatches));
+      }
     )) as Reducer<S, A>;
 
   const registerListener = (listener: PatchListener) => {
@@ -28,6 +57,73 @@ export function trackPatches<S, A extends Action<any>>(
   };
 
   return [newReducer, registerListener];
+}
+
+export function makeDraftableReducer<S, A extends Action>(
+  reducer: DraftableReducer<S, A>
+): Reducer<S, A> {
+  return (previousState: S | undefined, action: A) => {
+    if (isDraft(previousState)) {
+      // If it's already a draft, we must already be inside a `createNextState` call,
+      // likely because this is being wrapped in `createReducer`, `createSlice`, or nested
+      // inside an existing draft. It's safe to just pass the draft to the mutator.
+      const draft = previousState as Draft<S>; // We can assume this is already a draft
+      const result = reducer(draft, action);
+
+      if (typeof result === "undefined") {
+        return previousState;
+      }
+
+      return result;
+    } else if (!isDraftable(previousState)) {
+      // If state is not draftable (ex: a primitive, such as 0), we want to directly
+      // return the caseReducer func and not wrap it with produce.
+      const result = reducer(previousState as any, action);
+
+      if (typeof result === "undefined") {
+        if (previousState === null) {
+          return previousState;
+        }
+        throw Error(
+          "A case reducer on a non-draftable value must not return undefined"
+        );
+      }
+
+      return result;
+    }
+
+    return createNextState(previousState, (draft: Draft<S>) => {
+      return reducer(draft, action);
+    }) as any;
+  };
+}
+
+export function immerAwareCombineReducers<S>(
+  reducers: ReducersMapObject<S, any>
+): DraftableReducer<CombinedState<S>>;
+export function immerAwareCombineReducers<S, A extends Action = AnyAction>(
+  reducers: ReducersMapObject<S, A>
+): DraftableReducer<CombinedState<S>, A>;
+export function immerAwareCombineReducers<M extends ReducersMapObject>(
+  reducers: M
+): DraftableReducer<
+  CombinedState<StateFromReducersMapObject<M>>,
+  ActionFromReducersMapObject<M>
+>;
+export function immerAwareCombineReducers(map: ReducersMapObject) {
+  const keys = Object.keys(map);
+  return (
+    state: StateFromReducersMapObject<typeof map> = {},
+    action: AnyAction
+  ) => {
+    for (const k of keys) {
+      const newState = map[k](state[k], action);
+      if (!isDraft(newState)) {
+        state[k] = newState;
+      }
+    }
+    return state;
+  };
 }
 
 export function bufferToBase64(buffer: Uint8Array) {
@@ -178,11 +274,16 @@ export async function remoteStoreWrapper<S extends any>(
   };
 }
 
+export interface TabAwareStore<S, A extends AnyAction> extends Store<S, A> {
+  destroy: () => void;
+}
+
 export function makeTabAwareStore<S, A extends AnyAction>(
   store: Store<S, A>,
   tabId: number
-): Store<S, A> {
-  return new Proxy(store, {
+) {
+  const unsubscribes = new Set<ReturnType<typeof store["subscribe"]>>();
+  return new Proxy<TabAwareStore<S, A>>(store as any, {
     get(target, propKey) {
       console.log(target, propKey);
       if (propKey === "dispatch") {
@@ -192,7 +293,16 @@ export function makeTabAwareStore<S, A extends AnyAction>(
         };
       } else if (propKey === "subscribe") {
         return (listener: any) => {
-          target.subscribe(listener);
+          const unsubscribe = target.subscribe(listener);
+          unsubscribes.add(() => {
+            unsubscribe();
+            listener[releaseProxy]();
+          });
+        };
+      } else if (propKey === "destroy") {
+        return () => {
+          unsubscribes.forEach((f) => f());
+          unsubscribes.clear();
         };
       }
       return (target as any)[propKey];

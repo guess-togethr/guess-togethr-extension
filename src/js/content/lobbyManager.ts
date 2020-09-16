@@ -7,14 +7,13 @@ import { validateClientMessage, validateServerMessage } from "../protocol";
 import {
   setInitialSharedState,
   applySharedStatePatches,
-  trackSharedStatePatches,
 } from "./store/sharedState";
 import {
   BreakCycleRootState,
   userConnected,
   userDisconnected,
 } from "./store/localState";
-import { addJoinRequest } from "./store/lobbyState";
+import { addJoinRequest, trackSharedStatePatches } from "./store/lobbyState";
 import { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 const debug = require("debug")("lobby");
@@ -46,17 +45,18 @@ class LobbyBase {
   ) {}
 
   public async init() {
-    this.feed = await this.backgroundEndpoint.createNetworkFeed({
-      onPeerJoin: proxy(this.onPeerJoin),
-      onPeerLeave: proxy(this.onPeerLeave),
-      onPeerMessage: proxy(this.onPeerMessage.bind(this)),
-      ...this.opts,
-    });
+    this.feed = await this.backgroundEndpoint.createNetworkFeed(
+      this.opts,
+      proxy(this.onPeerJoin),
+      proxy(this.onPeerLeave),
+      proxy(this.onPeerMessage.bind(this))
+    );
     this.id = await this.feed.lobbyId;
     this.identity = await this.feed.identity;
   }
 
   public destroy() {
+    this.feed.destroy();
     this.feed[releaseProxy]();
   }
 
@@ -67,6 +67,8 @@ class LobbyBase {
       if (!validateServerMessage(data)) {
         throw new Error("Invalid server message");
       }
+
+      debug('building initial state', seq, data)
 
       if (!latest) {
         latest = seq;
@@ -120,15 +122,15 @@ class LobbyBase {
 export class LobbyClient extends LobbyBase {
   public async connect() {
     await this.feed.connect();
-    // this.store.dispatch(setConnectionState(ConnectionState.GettingInitialData));
     const latest = await this.buildInitialState();
-    this.feed.onLatestValue(proxy(this.onLatestValue), latest);
+    this.feed.onLatestValue(proxy(this.onLatestValue), latest+1);
   }
 
-  private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = (
-    data
-  ) => {
-    debug("on latest value", data);
+  private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = ({
+    data,
+    seq,
+  }) => {
+    debug("on latest value", seq, data);
     if (!validateServerMessage(data)) {
       console.error("Received invalid server message", data);
       return;
@@ -164,6 +166,13 @@ export class LobbyClient extends LobbyBase {
 export class LobbyServer extends LobbyBase {
   private stopPatchTracker: (() => void) | null = null;
 
+  public constructor(
+    private readonly name: string,
+    ...args: ConstructorParameters<typeof LobbyBase>
+  ) {
+    super(...args);
+  }
+
   public destroy() {
     this.stopPatchTracker?.();
     super.destroy();
@@ -178,7 +187,7 @@ export class LobbyServer extends LobbyBase {
         throw new Error("User logged out");
       }
       const newSharedState = {
-        name: state.lobby.localState!.name!,
+        name: this.name,
         ownerPublicKey: this.identity.publicKey,
         users: [
           {
@@ -222,7 +231,7 @@ export class LobbyServer extends LobbyBase {
   }
 
   private onPatches = (patches: Patch[]) => {
-    patches.length &&
-      this.writeToFeed({ type: "state-patch", payload: patches });
+    debug("writing patches", patches);
+    this.writeToFeed({ type: "state-patch", payload: patches });
   };
 }

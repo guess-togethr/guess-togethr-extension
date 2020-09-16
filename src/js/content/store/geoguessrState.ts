@@ -55,22 +55,22 @@ export const queryUsers = createAsyncThunk<
   GeoguessrUser[],
   string[],
   { state: { geoguessr: GeoguessrState } }
->("geoguessr/queryUsers", async (ids, { getState }) => {
-  const existingEntities = userCacheSelectors.selectEntities(getState());
-  const filteredIds = ids.filter((id) => !existingEntities[id]);
-  return (
-    await Promise.all(
-      filteredIds.map(async (id) => {
-        const response = await fetch(`/api/v3/users/${id}`);
-        if (response.ok) {
-          const body = await response.json();
-          return parseUserResponse(body);
-        }
-        return false;
-      })
-    )
-  ).filter(Boolean) as GeoguessrUser[];
-});
+>(
+  "geoguessr/queryUsers",
+  async (ids, { getState }) =>
+    (
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(`/api/v3/users/${id}`);
+          if (response.ok) {
+            const body = await response.json();
+            return parseUserResponse(body);
+          }
+          return false;
+        })
+      )
+    ).filter(Boolean) as GeoguessrUser[]
+);
 
 const geoguessrSlice = createSlice({
   name: "geoguessr",
@@ -103,8 +103,8 @@ const geoguessrSlice = createSlice({
 });
 
 export const selectUser = createSelector(
-  (state: RootState) => state.geoguessr,
-  (state) => state.currentUser
+  (state: any) => state.geoguessr,
+  (state) => state.currentUser as GeoguessrState["currentUser"]
 );
 
 export const selectUrl = createSelector(

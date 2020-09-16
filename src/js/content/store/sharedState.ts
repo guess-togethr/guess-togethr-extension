@@ -6,9 +6,9 @@ import {
 } from "@reduxjs/toolkit";
 import { SharedState } from "../../protocol/schema";
 import { applyPatches, Patch } from "immer";
-import { trackPatches } from "../../utils";
 import { RootState } from ".";
 import { queryUsers } from "./geoguessrState";
+import { leaveLobby } from "./localState";
 
 const sharedState = createSlice({
   name: "sharedState",
@@ -26,13 +26,8 @@ const sharedState = createSlice({
       state && (state.currentChallenge = { ...action.payload, round: 0 });
     },
   },
+  extraReducers: (builder) => builder.addCase(leaveLobby, () => null),
 });
-
-const [sharedStateReducer, trackSharedStatePatches] = trackPatches(
-  sharedState.reducer
-);
-
-export { trackSharedStatePatches };
 
 export const setInitialSharedState: ActionCreator<ThunkAction<
   void,
@@ -45,4 +40,4 @@ export const setInitialSharedState: ActionCreator<ThunkAction<
 };
 
 export const { applySharedStatePatches, setNewChallenge } = sharedState.actions;
-export default sharedStateReducer;
+export default sharedState.reducer;

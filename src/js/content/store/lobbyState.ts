@@ -1,12 +1,11 @@
 import {
-  combineReducers,
   Middleware,
-  createSelector,
   createAction,
-  createNextState,
   AnyAction,
   createAsyncThunk,
-  unwrapResult,
+  CombinedState,
+  StateFromReducersMapObject,
+  Draft,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import sharedState from "./sharedState";
@@ -15,17 +14,9 @@ import { User } from "../../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
 import localState, { leaveLobby, createLobby } from "./localState";
-import { selectUser, userCacheSelectors, queryUsers } from "./geoguessrState";
-
-export enum ConnectionState {
-  Disconnected,
-  Connecting,
-  GettingInitialData,
-  WaitingForHost,
-  WaitingForJoin,
-  Connected,
-  Error,
-}
+import { userCacheSelectors, queryUsers } from "./geoguessrState";
+import { trackPatches, immerAwareCombineReducers } from "../../utils";
+import { selectConnectionState, ConnectionState } from "./lobbySelectors";
 
 // This middleware performs two functions:
 //
@@ -64,11 +55,6 @@ const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
   };
 };
 
-const combinedReducer = combineReducers({
-  localState,
-  sharedState,
-});
-
 const addJoinRequest = createAsyncThunk<User, User, { state: RootState }>(
   "lobby/addJoinRequest",
   async (user: User, { dispatch, getState }) => {
@@ -88,105 +74,60 @@ function findConflictingUser(list: User[], user: User) {
   );
 }
 
+const reducerMap = { localState, sharedState };
+
+const combinedReducer = immerAwareCombineReducers(reducerMap);
+
 const crossReducer = (
-  state: ReturnType<typeof combinedReducer>,
+  draft: Draft<CombinedState<StateFromReducersMapObject<typeof reducerMap>>>,
   action: AnyAction
-) =>
-  createNextState(state, (draft) => {
-    if (!draft.localState || !draft.sharedState) {
-      return;
-    }
-    switch (action.type) {
-      case addJoinRequest.fulfilled.toString(): {
-        if (
-          !findConflictingUser(draft.localState.joinRequests, action.payload) &&
-          !findConflictingUser(draft.sharedState.users, action.payload)
-        ) {
-          draft.localState.joinRequests.push(action.payload);
-        }
-        break;
-      }
-      case approveJoinRequest.toString():
-      case denyJoinRequest.toString(): {
-        draft.localState.joinRequests = draft.localState.joinRequests.filter(
-          (r) => !shallowEqual(r, action.payload)
-        );
-
-        approveJoinRequest.match(action) &&
-          draft.sharedState.users.push(action.payload);
-
-        break;
-      }
-    }
-  });
-
-const lobbyReducer = reduceReducers(
-  combinedReducer,
-  crossReducer
-) as typeof combinedReducer;
-
-const selectMembers = (state: RootState) => state.lobby.sharedState?.users;
-const selectOnlineUsers = (state: RootState) =>
-  state.lobby.localState?.onlineUsers;
-
-const selectOnlineMembers = createSelector(
-  selectMembers,
-  selectOnlineUsers,
-  (members, onlineUsers) => {
-    if (!onlineUsers || !members) {
-      return [];
-    }
-
-    return onlineUsers.reduce(
-      (a, c) => a.concat(...[members.find((m) => m.publicKey === c) ?? []]),
-      [] as User[]
-    );
+) => {
+  if (!draft || !draft.localState || !draft.sharedState) {
+    return draft;
   }
-);
-
-const selectOwner = createSelector(
-  (state: RootState) => state.lobby.sharedState?.ownerPublicKey,
-  selectMembers,
-  (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
-);
-const selectConnectionState = createSelector(
-  selectUser,
-  (state: RootState) => state.lobby.localState?.error,
-  selectOnlineUsers,
-  selectMembers,
-  selectOwner,
-  (user, error, onlineUsers, members, owner) => {
-    if (!user || !localState) {
-      return ConnectionState.Disconnected;
+  switch (action.type) {
+    case addJoinRequest.fulfilled.toString(): {
+      if (
+        !findConflictingUser(draft.localState.joinRequests, action.payload) &&
+        !findConflictingUser(draft.sharedState.users, action.payload)
+      ) {
+        // temporarily allow all join requests
+        // draft.localState.joinRequests.push(action.payload);
+        draft.sharedState.users.push(action.payload);
+      }
+      break;
     }
+    case approveJoinRequest.toString():
+    case denyJoinRequest.toString(): {
+      draft.localState.joinRequests = draft.localState.joinRequests.filter(
+        (r) => !shallowEqual(r, action.payload)
+      );
 
-    if (error) {
-      return ConnectionState.Error;
+      approveJoinRequest.match(action) &&
+        draft.sharedState.users.push(action.payload);
+
+      break;
     }
-
-    if (!members || !owner) {
-      return ConnectionState.GettingInitialData;
-    }
-
-    if (!onlineUsers?.includes(owner.publicKey)) {
-      return ConnectionState.WaitingForHost;
-    }
-
-    if (members.findIndex(({ ggId }) => ggId === (user && user.id)) === -1) {
-      return ConnectionState.WaitingForJoin;
-    }
-
-    return ConnectionState.Connected;
   }
-);
-
-export const lobbySelectors = {
-  selectConnectionState,
-  selectOnlineUsers,
-  selectOnlineMembers,
-  selectMembers,
-  selectOwner,
 };
+
+const [
+  lobbyReducer,
+  localTrackSharedStatePatches,
+] = trackPatches(
+  reduceReducers(
+    combinedReducer as any,
+    crossReducer as any
+  ) as typeof combinedReducer,
+  ["sharedState"]
+);
+
+export const trackSharedStatePatches: typeof localTrackSharedStatePatches = (
+  listener
+) =>
+  localTrackSharedStatePatches((patches) =>
+    listener(patches.map((p) => ({ ...p, path: p.path.slice(1) })))
+  );
 
 export {
   createLobby,

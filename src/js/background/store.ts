@@ -23,13 +23,20 @@ import { localStorage as persistLocalStorage } from "redux-persist-webextension-
 import { browser } from "webextension-polyfill-ts";
 import logger from "redux-logger";
 
-export interface SavedLobby {
+export interface FullSavedLobby {
   id: string;
-  user: string;
-  name?: string;
-  isServer: boolean;
   identity: { publicKey: string; privateKey: string };
+  isServer: boolean;
+  user?: string;
+  name?: string;
   tabId?: number;
+}
+export type SavedLobby =
+  | FullSavedLobby
+  | { id: string; error: string; tabId: number };
+
+export function isFullLobby(lobby: SavedLobby): lobby is FullSavedLobby {
+  return "identity" in lobby;
 }
 
 const savedLobbyAdapter = createEntityAdapter<SavedLobby>();
@@ -55,8 +62,12 @@ const savedLobbies = createSlice({
       const existingLobby = savedLobbyLocalSelector
         .selectAll(state)
         .find((lobby) => lobby.tabId === (action as any).meta.tabId);
-      if (existingLobby) {
-        delete existingLobby.tabId;
+      if (existingLobby && existingLobby.id !== action.payload) {
+        if (!isFullLobby(existingLobby)) {
+          savedLobbyAdapter.removeOne(state, existingLobby.id);
+        } else {
+          delete existingLobby.tabId;
+        }
       }
       savedLobbyAdapter.updateOne(state, {
         id: action.payload,
@@ -68,7 +79,11 @@ const savedLobbies = createSlice({
         .selectAll(state)
         .find((lobby) => lobby.tabId === (action as any).meta.tabId);
       if (existingLobby) {
-        delete existingLobby.tabId;
+        if (!isFullLobby(existingLobby)) {
+          savedLobbyAdapter.removeOne(state, existingLobby.id);
+        } else {
+          delete existingLobby.tabId;
+        }
       }
     },
     updateSavedLobby: savedLobbyAdapter.updateOne,
@@ -91,15 +106,14 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
       store.getState(),
       action.payload
     );
-    if (lobby?.tabId) {
-      if (lobby.tabId === (action as any).meta.tabId) {
-        throw new Error("Double join");
+    if (lobby && isFullLobby(lobby) && lobby.tabId !== undefined) {
+      if (lobby.tabId !== (action as any).meta.tabId) {
+        browser.tabs
+          .get(lobby.tabId)
+          .then(({ index, windowId }) =>
+            browser.tabs.highlight({ windowId, tabs: index })
+          );
       }
-      browser.tabs
-        .get(lobby.tabId)
-        .then(({ index, windowId }) =>
-          browser.tabs.highlight({ windowId, tabs: index })
-        );
       return false;
     }
     next(action);
@@ -124,7 +138,11 @@ function createStore() {
                 console.log("WHAAAAT", draft);
                 savedLobbyLocalSelector
                   .selectAll(draft)
-                  .forEach((e) => delete e.tabId);
+                  .forEach((e) =>
+                    !isFullLobby(e)
+                      ? savedLobbyAdapter.removeOne(draft, e.id)
+                      : delete e.tabId
+                  );
               }),
             (state) => state,
             { whitelist: ["allLobbies"] }

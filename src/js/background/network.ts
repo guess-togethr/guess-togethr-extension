@@ -16,8 +16,6 @@ import { Remote, releaseProxy } from "comlink";
 
 const debug = Debug("network-feed");
 
-const db = idb("hypercore");
-
 let hypercore: any;
 
 type MaybeRemote<T> = Remote<T> | T;
@@ -26,11 +24,15 @@ function releaseMaybeProxy(f?: MaybeRemote<any>) {
   f && f[releaseProxy] && f[releaseProxy]();
 }
 
+type OnPeerMessageHandler = (data: any, peer: string) => void;
+type OnPeerJoinHandler = (peer: string) => void;
+type OnPeerLeaveHandler = (peer: string) => void;
+
 export type NetworkFeedOpts = {
   identity?: { publicKey: string; privateKey: string };
-  onPeerMessage?: MaybeRemote<(data: any, peer: string) => void>;
-  onPeerJoin?: MaybeRemote<(peer: string) => void>;
-  onPeerLeave?: MaybeRemote<(peer: string) => void>;
+  // onPeerMessage?: MaybeRemote<(data: any, peer: string) => void>;
+  // onPeerJoin?: MaybeRemote<(peer: string) => void>;
+  // onPeerLeave?: MaybeRemote<(peer: string) => void>;
 } & (
   | {
       isServer: true;
@@ -49,9 +51,12 @@ export class NetworkFeed {
   private readonly hypercoreReady = new Deferred();
   private readonly extension: any;
   private readonly publicKey: Buffer;
-  private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
-  private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
-  private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
+  // private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
+  // private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
+  // private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
+  // private readonly onPeerMessage?: Remote<OnPeerMessageHandler>;
+  // private readonly onPeerJoin?: Remote<OnPeerJoinHandler>;
+  // private readonly onPeerLeave?: Remote<OnPeerLeaveHandler>;
   private readonly onLatestValueHandlers = new Set<
     MaybeRemote<(value: { data: any; seq: number }) => void>
   >();
@@ -65,11 +70,15 @@ export class NetworkFeed {
             "stun:global.stun.twilio.com:3478",
           ],
         },
-        {
-          urls: process.env.TURN_URL,
-          username: process.env.TURN_USERNAME,
-          credential: process.env.TURN_PASSWORD,
-        },
+        ...(process.env.TURN_URL
+          ? [
+              {
+                urls: process.env.TURN_URL,
+                username: process.env.TURN_USERNAME,
+                credential: process.env.TURN_PASSWORD,
+              },
+            ]
+          : []),
       ],
     },
   };
@@ -77,7 +86,12 @@ export class NetworkFeed {
   public readonly lobbyId: string;
   public readonly isServer: boolean;
 
-  constructor(opts: NetworkFeedOpts) {
+  constructor(
+    opts: NetworkFeedOpts,
+    private readonly onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
+    private readonly onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>,
+    private readonly onPeerMessage?: MaybeRemote<OnPeerMessageHandler>
+  ) {
     try {
       const { lobbyId, publicKey, privateKey } = opts.id
         ? {
@@ -90,12 +104,13 @@ export class NetworkFeed {
         throw new Error("Invalid Lobby ID");
       }
 
+      const db = idb("hypercore");
       this.lobbyId = lobbyId;
       this.isServer = opts.isServer;
       this.publicKey = Buffer.from(publicKey);
-      this.onPeerMessage = opts.onPeerMessage;
-      this.onPeerJoin = opts.onPeerJoin;
-      this.onPeerLeave = opts.onPeerLeave;
+      // this.onPeerMessage = opts.onPeerMessage;
+      // this.onPeerJoin = opts.onPeerJoin;
+      // this.onPeerLeave = opts.onPeerLeave;
 
       this.swarm = Swarm({
         bootstrap: [process.env.SIGNAL_URL],
@@ -126,19 +141,23 @@ export class NetworkFeed {
       });
       this.onPeerJoin &&
         this.hypercore.on("peer-open", (peer: any) => {
-          peer.publicKeyString = bufferToBase64(peer.publicKey);
+          debug("peer joined!", peer);
+          peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
           this.onPeerJoin!(peer.publicKeyString);
         });
       this.onPeerLeave &&
         this.hypercore.on("peer-remove", (peer: any) => {
+          debug("peer left!", peer);
           this.onPeerLeave!(peer.publicKeyString);
         });
       this.extension = this.hypercore.registerExtension("ggt", {
         encoding: "json",
         onmessage:
           this.onPeerMessage &&
-          ((data: any, peer: any) =>
-            this.onPeerMessage!(data, peer.publicKeyString)),
+          ((data: any, peer: any) => {
+            debug("peer message", data, peer);
+            this.onPeerMessage!(data, peer.publicKeyString);
+          }),
       });
     } catch (e) {
       this.destroy();
@@ -146,10 +165,10 @@ export class NetworkFeed {
     }
   }
 
-  public destroy() {
+  public async destroy() {
     debug("destroying");
-    this.hypercore?.close();
-    this.swarm?.close();
+    await new Promise((resolve) => this.swarm?.close(resolve));
+    await new Promise((resolve) => this.hypercore?.close(resolve));
     releaseMaybeProxy(this.onPeerJoin);
     releaseMaybeProxy(this.onPeerLeave);
     releaseMaybeProxy(this.onPeerMessage);
@@ -178,6 +197,7 @@ export class NetworkFeed {
   }
 
   public writeToFeed(data: any) {
+    debug("writing to feed", data);
     return new Promise<number>((resolve, reject) =>
       this.hypercore.append(data, (err: any, seq: number) =>
         err ? reject(err) : resolve(seq)
@@ -190,7 +210,10 @@ export class NetworkFeed {
   }
 
   public sendToPeer(data: any, peer: string) {
-    const foundPeer = this.peers.find((p: any) => p.publicKeyString === peer);
+    debug("send to peer", data, peer);
+    const foundPeer = this.hypercore.peers.find(
+      (p: any) => p.publicKeyString === peer
+    );
     foundPeer && this.extension.send(data, foundPeer);
   }
 
