@@ -1,4 +1,3 @@
-import sodium from "./sodium_shim";
 import { Remote, proxy, transferHandlers, releaseProxy } from "comlink";
 import {
   Store,
@@ -198,38 +197,6 @@ export function crc32(buf: Uint8Array) {
   }
 
   return (crc ^ -1) >>> 0;
-}
-
-export function generateLobbyId(seed?: Uint8Array) {
-  const id = new Uint8Array(sodium.crypto_sign_PUBLICKEYBYTES + 4);
-  const { publicKey, privateKey } = seed
-    ? sodium.crypto_sign_seed_keypair(seed)
-    : sodium.crypto_sign_keypair();
-  id.set(publicKey);
-  new DataView(id.buffer).setUint32(
-    sodium.crypto_sign_PUBLICKEYBYTES,
-    crc32(publicKey)
-  );
-  return { publicKey, privateKey, lobbyId: bufferToBase64(id) };
-}
-
-export function decodeLobbyId(id: string) {
-  try {
-    const buf = base64ToBuffer(id);
-    if (buf.length !== sodium.crypto_sign_PUBLICKEYBYTES + 4) {
-      return null;
-    }
-    const publicKey = buf.subarray(0, sodium.crypto_sign_PUBLICKEYBYTES);
-    if (
-      crc32(publicKey) !==
-      new DataView(buf.buffer).getUint32(sodium.crypto_sign_PUBLICKEYBYTES)
-    ) {
-      return null;
-    }
-    return publicKey;
-  } catch (e) {
-    return null;
-  }
 }
 
 // export function generateNoiseKeypair() {

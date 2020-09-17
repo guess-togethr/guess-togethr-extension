@@ -9,10 +9,9 @@ var webpack = require("webpack"),
   BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
     .BundleAnalyzerPlugin;
 
-// load the secrets
 var alias = {
-  "sodium-native": path.resolve(__dirname, "src/js/utils/sodium_shim_cjs.js"),
-  crypto: path.resolve(__dirname, "src/js/utils/crypto_shim.js"),
+  "sodium-native": path.resolve(__dirname, "src/js/crypto/sodium_shim_cjs.js"),
+  crypto: path.resolve(__dirname, "src/js/crypto/crypto_shim.js"),
 };
 
 var fileExtensions = [
@@ -68,6 +67,10 @@ var options = {
       {
         test: /\.svg$/,
         loader: "@svgr/webpack",
+      },
+      {
+        test: /remote-redux-devtools/,
+        sideEffects: false,
       },
     ],
   },
@@ -134,7 +137,8 @@ var options = {
       Buffer: ["buffer", "Buffer"],
     }),
     new Dotenv(),
-    process.env.NODE_ENV === "production" && new BundleAnalyzerPlugin(),
+    process.env.NODE_ENV === "production" &&
+      new BundleAnalyzerPlugin({ generateStatsFile: true }),
   ].filter(Boolean),
 };
 

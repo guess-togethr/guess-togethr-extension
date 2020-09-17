@@ -1,9 +1,10 @@
-import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import logger from "redux-logger";
-import devToolsEnhancer from "remote-redux-devtools";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import lobby from "./lobbyState";
 import geoguessr, { geoguessrMiddleware } from "./geoguessrState";
-import lobby, { lobbyMiddleware } from "./lobbyState";
+import { lobbyMiddleware } from "./lobbyState";
+import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import devToolsEnhancer from "remote-redux-devtools";
+import logger from "redux-logger";
 
 const reducer = combineReducers({
   lobby,
@@ -17,7 +18,10 @@ export function createStore(backgroundEndpoint: RemoteBackgroundEndpoint) {
   return configureStore({
     reducer,
     devTools: false,
-    enhancers: [devToolsEnhancer({ port: 3030, secure: false })],
+    enhancers:
+      process.env.NODE_ENV === "development"
+        ? [devToolsEnhancer({ port: 3030, secure: false })]
+        : undefined,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         thunk: { extraArgument: backgroundEndpoint },

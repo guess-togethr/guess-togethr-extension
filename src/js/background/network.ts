@@ -1,19 +1,14 @@
 import "webrtc-adapter";
-import {
-  Deferred,
-  generateLobbyId,
-  decodeLobbyId,
-  base64ToBuffer,
-  bufferToBase64,
-} from "../utils";
+import { Deferred, base64ToBuffer, bufferToBase64 } from "../utils";
+import sodium from "../crypto/sodium_shim";
 import Debug from "debug";
 
 import idb from "random-access-idb";
 
 import Swarm from "@geut/discovery-swarm-webrtc";
-import sodium from "../utils/sodium_shim";
 import { Remote, releaseProxy } from "comlink";
 import { EventEmitter } from "events";
+import { decodeLobbyId, generateLobbyId } from "../crypto";
 
 const debug = Debug("network-feed");
 
