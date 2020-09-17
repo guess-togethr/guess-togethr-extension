@@ -4,7 +4,7 @@
   "description": "A web extension that lets you play GeoGuessr with friends",
   "private": "true",
   "scripts": {
-    "build": "node utils/build.js",
+    "build": "cross-env NODE_ENV=production node -r ts-node/register utils/build.js",
     "start": "cross-env NODE_ENV=development node -r ts-node/register utils/webserver.js",
     "start:server": "./node_modules/.bin/discovery-swarm-webrtc",
     "debug": "node --lazy --inspect-brk=9229 --preserve-symlinks --preserve-symlinks-main utils/webserver.js",
@@ -56,10 +56,12 @@
     "redux-logger": "^3.0.6",
     "redux-persist": "^6.0.0",
     "redux-persist-webextension-storage": "^1.0.2",
+    "strict-event-emitter-types": "^2.0.0",
     "typescript": "^3.9.6",
     "typescript-json-schema": "^0.42.0",
     "url-loader": "^4.1.0",
     "webextension-polyfill-ts": "^0.19.0",
+    "webpack-bundle-analyzer": "^3.9.0",
     "webrtc-adapter": "^7.6.3"
   },
   "devDependencies": {

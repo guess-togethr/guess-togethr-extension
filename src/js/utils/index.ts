@@ -247,8 +247,9 @@ export function decodeLobbyId(id: string) {
 
 export async function remoteStoreWrapper<S extends any>(
   remoteStore: Remote<Store<S>>
-): Promise<Store<S>> {
+): Promise<Store<S> & { close: () => void }> {
   const subscribers = new Set<() => void>();
+  let closed = false;
 
   let latestState = (await remoteStore.getState()) as S;
   remoteStore.subscribe(
@@ -259,7 +260,13 @@ export async function remoteStoreWrapper<S extends any>(
     })
   );
   return {
-    dispatch: (action) => (remoteStore.dispatch(action) as unknown) as any,
+    close: () => {
+      console.log("CLOSED");
+      closed = true;
+      subscribers.clear();
+    },
+    dispatch: (action) =>
+      (!closed && (remoteStore.dispatch(action) as unknown)) as any,
     getState: () => latestState,
     subscribe(listener) {
       subscribers.add(listener);

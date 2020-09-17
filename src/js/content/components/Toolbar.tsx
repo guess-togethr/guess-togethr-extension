@@ -6,28 +6,12 @@ import React, {
   useEffect,
 } from "react";
 import Dropdown from "./Dropdown";
-import { ConnectionState } from "../store/lobbyState";
-import {
-  makeStyles,
-  ListSubheader,
-  Paper,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  IconButton,
-} from "@material-ui/core";
 import CurrentLobby from "./CurrentLobby";
 import ToolbarHeader from "./ToolbarHeader";
 import CreateNew from "./CreateNew";
 import SavedLobby, { SavedLobbyHeader } from "./SavedLobby";
-import { Edit } from "@material-ui/icons";
 import SignedOut from "./SignedOut";
-
-const useStyles = makeStyles({
-  mainListItem: {
-    alignItems: "start",
-  },
-});
+import { ConnectionState } from "../store/lobbySelectors";
 
 interface ToolbarProps {
   currentLobby?: {
@@ -53,7 +37,6 @@ const Toolbar = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const onMainClick = useCallback(() => setOpen((isOpen) => !isOpen), []);
-  const classes = useStyles();
   const mainChild = useMemo(
     () =>
       currentLobby ? (

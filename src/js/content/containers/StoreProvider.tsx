@@ -3,30 +3,49 @@ import { createStore } from "../store";
 import { Provider } from "react-redux";
 import { Store } from "@reduxjs/toolkit";
 import { remoteStoreWrapper } from "../../utils";
-import { BackgroundStoreContext } from "../hooks";
+import { BackgroundStoreContext, useAppSelector } from "../hooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
+import { selectRedirect } from "../store/geoguessrState";
 
-const StoreProvider: React.FunctionComponent = ({ children }) => {
+const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
+  const backgroundEndpoint = useBackgroundEndpoint();
+  const redirect = Boolean(useAppSelector(selectRedirect));
   const [backgroundStore, setBackgroundStore] = useState<Store<any> | null>(
     null
   );
-  const [store, setStore] = useState<Store<any> | null>(null);
-  const backgroundEndpoint = useBackgroundEndpoint();
+
   useEffect(() => {
-    if (!backgroundEndpoint) {
-      return;
+    if (redirect && backgroundStore) {
+      (backgroundStore as any).close();
     }
-    setStore(createStore(backgroundEndpoint));
+  }, [redirect, backgroundStore]);
+
+  useEffect(() => {
     backgroundEndpoint
-      .getStore()
+      ?.getStore()
       .then(remoteStoreWrapper)
       .then(setBackgroundStore);
   }, [backgroundEndpoint]);
+
   return (
-    backgroundStore &&
-    store && (
+    backgroundStore && (
       <Provider store={backgroundStore} context={BackgroundStoreContext}>
-        <Provider store={store}>{children}</Provider>
+        {children}
+      </Provider>
+    )
+  );
+};
+
+const StoreProvider: React.FunctionComponent = ({ children }) => {
+  const [store, setStore] = useState<Store<any> | null>(null);
+  const backgroundEndpoint = useBackgroundEndpoint();
+  useEffect(() => {
+    backgroundEndpoint && setStore(createStore(backgroundEndpoint));
+  }, [backgroundEndpoint]);
+  return (
+    store && (
+      <Provider store={store}>
+        <BackgroundStoreProvider>{children}</BackgroundStoreProvider>
       </Provider>
     )
   );

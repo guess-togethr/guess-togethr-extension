@@ -1,10 +1,11 @@
 import {
-  createSlice,
-  PayloadAction,
   createAsyncThunk,
-  createSelector,
-  EntityState,
   createEntityAdapter,
+  createSelector,
+  createSlice,
+  EntityState,
+  Middleware,
+  PayloadAction,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import { leaveLobby } from "./localState";
@@ -20,6 +21,7 @@ interface GeoguessrState {
   url: string;
   currentUser: GeoguessrUser | false | null;
   userQueryCache: EntityState<GeoguessrUser | { id: string }>;
+  redirect?: string;
 }
 
 const userCacheAdapter = createEntityAdapter<GeoguessrUser | { id: string }>();
@@ -83,6 +85,9 @@ const geoguessrSlice = createSlice({
     setUrl: (state, action: PayloadAction<string>) => {
       state.url = action.payload;
     },
+    redirect: (state, action: PayloadAction<string>) => {
+      state.redirect = action.payload;
+    },
   },
   extraReducers: (builder) =>
     builder
@@ -102,6 +107,20 @@ const geoguessrSlice = createSlice({
       }),
 });
 
+export const geoguessrMiddleware: Middleware = (store) => (next) => (
+  action
+) => {
+  if (redirect.match(action)) {
+    next(action);
+    if (window.location.href !== action.payload) {
+      window.location.href = action.payload;
+    }
+    return;
+  }
+  // Swallow actions if we're redirecting
+  if (!selectRedirect(store.getState())) return next(action);
+};
+
 export const selectUser = createSelector(
   (state: any) => state.geoguessr,
   (state) => state.currentUser as GeoguessrState["currentUser"]
@@ -112,5 +131,7 @@ export const selectUrl = createSelector(
   (state) => state.url
 );
 
-export const { setUrl } = geoguessrSlice.actions;
+export const selectRedirect = (state: RootState) => state.geoguessr.redirect;
+
+export const { setUrl, redirect } = geoguessrSlice.actions;
 export default geoguessrSlice.reducer;

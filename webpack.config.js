@@ -1,12 +1,13 @@
 var webpack = require("webpack"),
   path = require("path"),
-  fileSystem = require("fs"),
   CleanWebpackPlugin = require("clean-webpack-plugin").CleanWebpackPlugin,
   CopyWebpackPlugin = require("copy-webpack-plugin"),
   HtmlWebpackPlugin = require("html-webpack-plugin"),
   WriteFilePlugin = require("write-file-webpack-plugin"),
   ReloadPlugin = require("./ReloadPlugin"),
-  Dotenv = require("dotenv-webpack");
+  Dotenv = require("dotenv-webpack"),
+  BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
+    .BundleAnalyzerPlugin;
 
 // load the secrets
 var alias = {
@@ -38,7 +39,7 @@ var options = {
     ].filter(Boolean),
   },
   output: {
-    path: path.join(__dirname, "build"),
+    path: path.resolve(__dirname, "build"),
     filename: "[name].bundle.js",
   },
   node: { stream: true, crypto: "empty", Buffer: false, buffer: false },
@@ -82,10 +83,11 @@ var options = {
     },
   },
   plugins: [
-    new ReloadPlugin({
-      contentScripts: ["content"],
-      backgroundScript: "background",
-    }),
+    process.env.NODE_ENV === "development" &&
+      new ReloadPlugin({
+        contentScripts: ["content"],
+        backgroundScript: "background",
+      }),
     // clean the build folder
     new CleanWebpackPlugin(),
     // expose and write the allowed env vars on the compiled bundle
@@ -132,7 +134,8 @@ var options = {
       Buffer: ["buffer", "Buffer"],
     }),
     new Dotenv(),
-  ],
+    process.env.NODE_ENV === "production" && new BundleAnalyzerPlugin(),
+  ].filter(Boolean),
 };
 
 if (process.env.NODE_ENV === "development") {

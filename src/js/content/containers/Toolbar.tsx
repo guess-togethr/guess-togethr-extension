@@ -54,6 +54,7 @@ const ToolbarContainer = () => {
   );
   console.log(savedLobbies);
   const [editMode, setEditMode] = useState(false);
+  const [rejoinOpen, setRejoinOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const backgroundDispatch = useBackgroundDispatch();
