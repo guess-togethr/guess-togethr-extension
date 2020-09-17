@@ -1,6 +1,6 @@
 import { ClientMessage, User, ServerMessage } from "../protocol/schema";
 import { Patch, applyPatches } from "immer";
-import { Remote, proxy, releaseProxy } from "comlink";
+import { Remote, proxy, releaseProxy, ProxyMarked } from "comlink";
 import { NetworkFeed } from "../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
 import { validateClientMessage, validateServerMessage } from "../protocol";
@@ -35,7 +35,7 @@ export type LobbyClientOpts = {
 export type LobbyOpts = LobbyClientOpts | LobbyServerOpts;
 
 class LobbyBase {
-  protected feed!: Remote<NetworkFeed>;
+  protected feed!: Remote<NetworkFeed & ProxyMarked>;
   public id!: string;
   public identity!: Identity;
   constructor(
@@ -51,11 +51,10 @@ class LobbyBase {
   }
 
   public async connect() {
-    return this.feed.connect(
-      proxy(this.onPeerJoin),
-      proxy(this.onPeerLeave),
-      proxy(this.onPeerMessage.bind(this))
-    );
+    await this.feed.on("peerJoin", proxy(this.onPeerJoin));
+    await this.feed.on("peerLeave", proxy(this.onPeerLeave));
+    await this.feed.on("peerMessage", proxy(this.onPeerMessage.bind(this)));
+    return await this.feed.connect();
   }
 
   public destroy() {
@@ -129,10 +128,10 @@ export class LobbyClient extends LobbyBase {
     this.feed.onLatestValue(proxy(this.onLatestValue), latest + 1);
   }
 
-  private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = ({
-    data,
+  private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = (
     seq,
-  }) => {
+    data
+  ) => {
     debug("on latest value", seq, data);
     if (!validateServerMessage(data)) {
       console.error("Received invalid server message", data);

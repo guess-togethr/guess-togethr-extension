@@ -13,6 +13,7 @@ import idb from "random-access-idb";
 import Swarm from "@geut/discovery-swarm-webrtc";
 import sodium from "../utils/sodium_shim";
 import { Remote, releaseProxy } from "comlink";
+import { EventEmitter } from "events";
 
 const debug = Debug("network-feed");
 
@@ -45,7 +46,7 @@ export type NetworkFeedOpts = {
     }
 );
 
-export class NetworkFeed {
+export class NetworkFeed extends EventEmitter {
   private readonly swarm: ReturnType<typeof Swarm>;
   private swarmConnected = false;
   private readonly hypercore: any;
@@ -55,9 +56,9 @@ export class NetworkFeed {
   // private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
   // private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
   // private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
-  private onPeerMessage?: MaybeRemote<OnPeerMessageHandler>;
-  private onPeerJoin?: MaybeRemote<OnPeerJoinHandler>;
-  private onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>;
+  // private onPeerMessage?: MaybeRemote<OnPeerMessageHandler>;
+  // private onPeerJoin?: MaybeRemote<OnPeerJoinHandler>;
+  // private onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>;
   private readonly onLatestValueHandlers = new Set<
     MaybeRemote<(value: { data: any; seq: number }) => void>
   >();
@@ -89,6 +90,7 @@ export class NetworkFeed {
   public destroyed = false;
 
   constructor(opts: NetworkFeedOpts) {
+    super();
     try {
       const { lobbyId, publicKey, privateKey } = opts.id
         ? {
@@ -139,17 +141,20 @@ export class NetworkFeed {
       this.hypercore.on("peer-open", (peer: any) => {
         debug("peer joined!", peer);
         peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
-        this.onPeerJoin?.(peer.publicKeyString);
+        // this.onPeerJoin?.(peer.publicKeyString);
+        this.emit("peerJoin", peer.publicKeyString);
       });
       this.hypercore.on("peer-remove", (peer: any) => {
         debug("peer left!", peer);
-        this.onPeerLeave?.(peer.publicKeyString);
+        // this.onPeerLeave?.(peer.publicKeyString);
+        this.emit("peerLeave", peer.publicKeyString);
       });
       this.extension = this.hypercore.registerExtension("ggt", {
         encoding: "json",
         onmessage: (data: any, peer: any) => {
           debug("peer message", data, peer);
-          this.onPeerMessage?.(data, peer.publicKeyString);
+          // this.onPeerMessage?.(data, peer.publicKeyString);
+          this.emit("peerMessage", data, peer.publicKeyString);
         },
       });
     } catch (e) {
@@ -168,33 +173,31 @@ export class NetworkFeed {
     }
   }
 
-  public async connect(
-    onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
-    onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>,
-    onPeerMessage?: MaybeRemote<OnPeerMessageHandler>
-  ) {
-    this.onPeerJoin = onPeerJoin;
-    this.onPeerLeave = onPeerLeave;
-    this.onPeerMessage = onPeerMessage;
+  public async connect() {
+    // onPeerMessage?: MaybeRemote<OnPeerMessageHandler> // onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>, // onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
+    // this.onPeerJoin = onPeerJoin;
+    // this.onPeerLeave = onPeerLeave;
+    // this.onPeerMessage = onPeerMessage;
 
     await this.hypercoreReady.promise;
     if (!this.swarmConnected) {
       this.swarm.join(this.publicKey);
       this.swarmConnected = true;
     } else {
-      this.peers.forEach((p: any) => this.onPeerJoin!(p));
+      this.peers.forEach((p: any) => this.emit("peerJoin", p));
     }
   }
 
   public disconnect() {
-    releaseMaybeProxy(this.onPeerJoin);
-    releaseMaybeProxy(this.onPeerLeave);
-    releaseMaybeProxy(this.onPeerMessage);
-    this.onPeerJoin = undefined;
-    this.onPeerLeave = undefined;
-    this.onPeerMessage = undefined;
-    this.onLatestValueHandlers.forEach(releaseMaybeProxy);
-    this.onLatestValueHandlers.clear();
+    // releaseMaybeProxy(this.onPeerJoin);
+    // releaseMaybeProxy(this.onPeerLeave);
+    // releaseMaybeProxy(this.onPeerMessage);
+    // this.onPeerJoin = undefined;
+    // this.onPeerLeave = undefined;
+    // this.onPeerMessage = undefined;
+    this.removeAllListeners();
+    // this.onLatestValueHandlers.forEach(releaseMaybeProxy);
+    // this.onLatestValueHandlers.clear();
   }
 
   public get peers() {
@@ -234,13 +237,17 @@ export class NetworkFeed {
   }
 
   public onLatestValue(
-    handler: MaybeRemote<(data: { seq: number; data: any }) => void>,
+    handler: MaybeRemote<(seq: number, data: any) => void>,
     start: number = 0
   ) {
-    this.onLatestValueHandlers.add(handler);
+    let seq = start;
+    // this.onLatestValueHandlers.add(handler);
+    this.on(`latestValue-${start}`, handler);
     this.hypercore
       .createReadStream({ live: true, start })
-      .on("data", (data: any) => handler({ data, seq: start++ }));
+      .on("data", (data: any) =>
+        this.emit(`latestValue-${start}`, seq++, data)
+      );
   }
 
   public async *getLatestValues() {
@@ -269,6 +276,20 @@ export class NetworkFeed {
       this.hypercoreReady.resolve();
     }
   };
+
+  public once(eventName: string, listener: (...args: any[]) => void) {
+    return super.once(eventName, (...args: any[]) => {
+      listener(...args);
+      releaseMaybeProxy(listener);
+    });
+  }
+
+  public removeAllListeners(event?: string) {
+    (event ? [event] : this.eventNames()).forEach((e) =>
+      this.listeners(e).forEach(releaseMaybeProxy)
+    );
+    return super.removeAllListeners(event);
+  }
 }
 
 export async function initializeNetworking() {
