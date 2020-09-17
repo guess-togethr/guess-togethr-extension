@@ -1,25 +1,14 @@
-import React, { useMemo } from "react";
-import { useAppSelector } from "../hooks";
-import { selectUrl, selectUser } from "../store/geoguessrState";
+import React from "react";
 import MapPlayShim from "./MapPlay";
+import LobbyClientShim from "./LobbyClient";
 
 const Shims = () => {
-  const url = useAppSelector(selectUrl);
-  const user = useAppSelector(selectUser);
-  const isPro = user && user.isPro;
-
-  const mapPlayShim = useMemo(() => {
-    if (!isPro) {
-      return null;
-    }
-    const urlObj = new URL(url);
-    return urlObj.hostname === "www.geoguessr.com" &&
-      /^\/maps\/[^/]+\/play$/.test(urlObj.pathname) ? (
+  return (
+    <>
       <MapPlayShim />
-    ) : null;
-  }, [url, isPro]);
-
-  return <>{mapPlayShim}</>;
+      <LobbyClientShim />
+    </>
+  );
 };
 
 export default Shims;

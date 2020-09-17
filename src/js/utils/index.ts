@@ -275,7 +275,7 @@ export async function remoteStoreWrapper<S extends any>(
 }
 
 export interface TabAwareStore<S, A extends AnyAction> extends Store<S, A> {
-  destroy: () => void;
+  reset: () => void;
 }
 
 export function makeTabAwareStore<S, A extends AnyAction>(
@@ -299,7 +299,7 @@ export function makeTabAwareStore<S, A extends AnyAction>(
             listener[releaseProxy]();
           });
         };
-      } else if (propKey === "destroy") {
+      } else if (propKey === "reset") {
         return () => {
           unsubscribes.forEach((f) => f());
           unsubscribes.clear();

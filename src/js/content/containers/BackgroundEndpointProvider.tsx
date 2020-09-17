@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, createContext } from "react";
-import { BackgroundEndpoint } from "../../background/background";
+import BackgroundEndpoint from "../../background/backgroundEndpoint";
 import { cacheRemoteProperties, CachedRemote } from "../../utils";
 import { createEndpoint } from "comlink-extension";
 import { browser } from "webextension-polyfill-ts";

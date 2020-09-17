@@ -6,7 +6,6 @@ import React, {
   useEffect,
   RefObject,
 } from "react";
-import { ConnectionState } from "../store/lobbyState";
 import {
   Button,
   makeStyles,
@@ -20,6 +19,7 @@ import ToolbarHeader from "./ToolbarHeader";
 import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
 import { Assignment } from "@material-ui/icons";
 import TextField from "./TextField";
+import { ConnectionState } from "../store/lobbySelectors";
 
 const useStyles = makeStyles({
   outerContainer: {

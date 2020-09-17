@@ -128,26 +128,29 @@ function createStore() {
       {
         storage: persistLocalStorage,
         key: "ggt-lobbies",
-        transforms: [
-          createTransform<
-            ReturnType<typeof savedLobbies["reducer"]>,
-            ReturnType<typeof savedLobbies["reducer"]>
-          >(
-            (state) =>
-              createNextState(state, (draft) => {
-                console.log("WHAAAAT", draft);
-                savedLobbyLocalSelector
-                  .selectAll(draft)
-                  .forEach((e) =>
-                    !isFullLobby(e)
-                      ? savedLobbyAdapter.removeOne(draft, e.id)
-                      : delete e.tabId
-                  );
-              }),
-            (state) => state,
-            { whitelist: ["allLobbies"] }
-          ),
-        ],
+        transforms:
+          process.env.NODE_ENV === "development"
+            ? undefined
+            : [
+                createTransform<
+                  ReturnType<typeof savedLobbies["reducer"]>,
+                  ReturnType<typeof savedLobbies["reducer"]>
+                >(
+                  (state) =>
+                    createNextState(state, (draft) => {
+                      console.log("WHAAAAT", draft);
+                      savedLobbyLocalSelector
+                        .selectAll(draft)
+                        .forEach((e) =>
+                          !isFullLobby(e)
+                            ? savedLobbyAdapter.removeOne(draft, e.id)
+                            : delete e.tabId
+                        );
+                    }),
+                  (state) => state,
+                  { whitelist: ["allLobbies"] }
+                ),
+              ],
       },
       rootReducer
     ),

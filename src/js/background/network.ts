@@ -47,6 +47,7 @@ export type NetworkFeedOpts = {
 
 export class NetworkFeed {
   private readonly swarm: ReturnType<typeof Swarm>;
+  private swarmConnected = false;
   private readonly hypercore: any;
   private readonly hypercoreReady = new Deferred();
   private readonly extension: any;
@@ -54,9 +55,9 @@ export class NetworkFeed {
   // private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
   // private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
   // private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
-  // private readonly onPeerMessage?: Remote<OnPeerMessageHandler>;
-  // private readonly onPeerJoin?: Remote<OnPeerJoinHandler>;
-  // private readonly onPeerLeave?: Remote<OnPeerLeaveHandler>;
+  private onPeerMessage?: MaybeRemote<OnPeerMessageHandler>;
+  private onPeerJoin?: MaybeRemote<OnPeerJoinHandler>;
+  private onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>;
   private readonly onLatestValueHandlers = new Set<
     MaybeRemote<(value: { data: any; seq: number }) => void>
   >();
@@ -85,13 +86,9 @@ export class NetworkFeed {
 
   public readonly lobbyId: string;
   public readonly isServer: boolean;
+  public destroyed = false;
 
-  constructor(
-    opts: NetworkFeedOpts,
-    private readonly onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
-    private readonly onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>,
-    private readonly onPeerMessage?: MaybeRemote<OnPeerMessageHandler>
-  ) {
+  constructor(opts: NetworkFeedOpts) {
     try {
       const { lobbyId, publicKey, privateKey } = opts.id
         ? {
@@ -139,25 +136,21 @@ export class NetworkFeed {
         this.destroy();
         this.hypercoreReady.reject(err);
       });
-      this.onPeerJoin &&
-        this.hypercore.on("peer-open", (peer: any) => {
-          debug("peer joined!", peer);
-          peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
-          this.onPeerJoin!(peer.publicKeyString);
-        });
-      this.onPeerLeave &&
-        this.hypercore.on("peer-remove", (peer: any) => {
-          debug("peer left!", peer);
-          this.onPeerLeave!(peer.publicKeyString);
-        });
+      this.hypercore.on("peer-open", (peer: any) => {
+        debug("peer joined!", peer);
+        peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
+        this.onPeerJoin?.(peer.publicKeyString);
+      });
+      this.hypercore.on("peer-remove", (peer: any) => {
+        debug("peer left!", peer);
+        this.onPeerLeave?.(peer.publicKeyString);
+      });
       this.extension = this.hypercore.registerExtension("ggt", {
         encoding: "json",
-        onmessage:
-          this.onPeerMessage &&
-          ((data: any, peer: any) => {
-            debug("peer message", data, peer);
-            this.onPeerMessage!(data, peer.publicKeyString);
-          }),
+        onmessage: (data: any, peer: any) => {
+          debug("peer message", data, peer);
+          this.onPeerMessage?.(data, peer.publicKeyString);
+        },
       });
     } catch (e) {
       this.destroy();
@@ -167,18 +160,41 @@ export class NetworkFeed {
 
   public async destroy() {
     debug("destroying");
-    await new Promise((resolve) => this.swarm?.close(resolve));
-    await new Promise((resolve) => this.hypercore?.close(resolve));
+    this.disconnect();
+    if (!this.destroyed) {
+      this.destroyed = true;
+      await new Promise((resolve) => this.swarm?.close(resolve));
+      await new Promise((resolve) => this.hypercore?.close(resolve));
+    }
+  }
+
+  public async connect(
+    onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
+    onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>,
+    onPeerMessage?: MaybeRemote<OnPeerMessageHandler>
+  ) {
+    this.onPeerJoin = onPeerJoin;
+    this.onPeerLeave = onPeerLeave;
+    this.onPeerMessage = onPeerMessage;
+
+    await this.hypercoreReady.promise;
+    if (!this.swarmConnected) {
+      this.swarm.join(this.publicKey);
+      this.swarmConnected = true;
+    } else {
+      this.peers.forEach((p: any) => this.onPeerJoin!(p));
+    }
+  }
+
+  public disconnect() {
     releaseMaybeProxy(this.onPeerJoin);
     releaseMaybeProxy(this.onPeerLeave);
     releaseMaybeProxy(this.onPeerMessage);
+    this.onPeerJoin = undefined;
+    this.onPeerLeave = undefined;
+    this.onPeerMessage = undefined;
     this.onLatestValueHandlers.forEach(releaseMaybeProxy);
     this.onLatestValueHandlers.clear();
-  }
-
-  public async connect() {
-    await this.hypercoreReady.promise;
-    this.swarm.join(this.publicKey);
   }
 
   public get peers() {

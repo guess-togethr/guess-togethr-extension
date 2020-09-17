@@ -45,14 +45,17 @@ class LobbyBase {
   ) {}
 
   public async init() {
-    this.feed = await this.backgroundEndpoint.createNetworkFeed(
-      this.opts,
+    this.feed = await this.backgroundEndpoint.createNetworkFeed(this.opts);
+    this.id = await this.feed.lobbyId;
+    this.identity = await this.feed.identity;
+  }
+
+  public async connect() {
+    return this.feed.connect(
       proxy(this.onPeerJoin),
       proxy(this.onPeerLeave),
       proxy(this.onPeerMessage.bind(this))
     );
-    this.id = await this.feed.lobbyId;
-    this.identity = await this.feed.identity;
   }
 
   public destroy() {
@@ -68,7 +71,7 @@ class LobbyBase {
         throw new Error("Invalid server message");
       }
 
-      debug('building initial state', seq, data)
+      debug("building initial state", seq, data);
 
       if (!latest) {
         latest = seq;
@@ -121,9 +124,9 @@ class LobbyBase {
 
 export class LobbyClient extends LobbyBase {
   public async connect() {
-    await this.feed.connect();
+    await super.connect();
     const latest = await this.buildInitialState();
-    this.feed.onLatestValue(proxy(this.onLatestValue), latest+1);
+    this.feed.onLatestValue(proxy(this.onLatestValue), latest + 1);
   }
 
   private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = ({
@@ -179,7 +182,7 @@ export class LobbyServer extends LobbyBase {
   }
 
   public async connect() {
-    await this.feed.connect();
+    await super.connect();
     const latest = await this.buildInitialState();
     if (!latest) {
       const state = this.store.getState();

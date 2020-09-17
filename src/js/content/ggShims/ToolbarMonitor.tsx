@@ -10,7 +10,6 @@ const ToolbarMonitor: React.FunctionComponent = ({ children }) => {
   }
   const mo = useRef<MutationObserver>(
     new MutationObserver((changes) => {
-      debugger;
       if (
         !changes
           .map(({ addedNodes, removedNodes }) =>

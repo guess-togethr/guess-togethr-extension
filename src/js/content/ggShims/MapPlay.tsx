@@ -1,8 +1,9 @@
 import { makeStyles } from "@material-ui/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAppDispatch, useExternalDom } from "../hooks";
+import { useAppDispatch, useExternalDom, useAppSelector } from "../hooks";
 import { setNewChallenge } from "../store/sharedState";
+import { selectUrl, selectUser } from "../store/geoguessrState";
 
 function unselect(el: Element) {
   el.classList.remove("radio-box--selected");
@@ -87,7 +88,7 @@ const useChallengeIdMonitor = (gameSettings: HTMLDivElement | null) => {
   return challengeId;
 };
 
-const MapPlayShim = () => {
+const MapPlayShimComponent = () => {
   const dispatch = useAppDispatch();
   const classes = useStyles();
   const gameSettings = useExternalDom(
@@ -228,6 +229,23 @@ const MapPlayShim = () => {
         gameSettings.querySelector("div.game-settings__section")!
       )
     : null;
+};
+
+const MapPlayShim = () => {
+  const url = useAppSelector(selectUrl);
+  const user = useAppSelector(selectUser);
+  const isPro = user && user.isPro;
+
+  return useMemo(() => {
+    if (!isPro) {
+      return null;
+    }
+    const urlObj = new URL(url);
+    return urlObj.hostname === "www.geoguessr.com" &&
+      /^\/maps\/[^/]+\/play$/.test(urlObj.pathname) ? (
+      <MapPlayShimComponent />
+    ) : null;
+  }, [url, isPro]);
 };
 
 export default MapPlayShim;
