@@ -7,8 +7,7 @@ import {
   Middleware,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { RootState } from ".";
-import { leaveLobby } from "./localState";
+import { RootState, leaveLobby } from ".";
 
 interface GeoguessrUser {
   id: string;

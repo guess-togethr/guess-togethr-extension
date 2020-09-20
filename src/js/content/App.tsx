@@ -1,11 +1,11 @@
-import React, { MutableRefObject, useEffect, useRef } from "react";
+import React from "react";
 import ToolbarContainer from "./containers/Toolbar";
 import { useAppSelector, useUrlMonitor, useUserMonitor } from "./hooks";
 import BackgroundEndpointProvider from "./containers/BackgroundEndpointProvider";
-import { selectUser } from "./store/geoguessrState";
 import StoreProvider from "./containers/StoreProvider";
 import ThemeProvider from "./containers/ThemeProvider";
 import ToolbarMonitor from "./ggShims/ToolbarMonitor";
+import { selectUser } from "./store";
 
 const App: React.FunctionComponent = () => {
   const user = useAppSelector(selectUser);

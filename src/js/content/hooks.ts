@@ -20,9 +20,8 @@ import {
   shallowEqual,
   useDispatch,
 } from "react-redux";
-import { AppDispatch, RootState } from "./store";
+import { AppDispatch, RootState, selectUrl, setUrl, checkCurrentUser } from "./store";
 import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
-import { selectUrl, checkCurrentUser, setUrl } from "./store/geoguessrState";
 import { proxy } from "comlink";
 
 export const BackgroundStoreContext: any = createContext(null);

@@ -1,3 +1,4 @@
+import { unwrapResult } from "@reduxjs/toolkit";
 import React, {
   useCallback,
   useEffect,
@@ -7,34 +8,32 @@ import React, {
 } from "react";
 import {
   claimSavedLobby,
+  FullSavedLobby,
   isFullLobby,
   removeSavedLobby,
+  SavedLobby,
   savedLobbySelector,
   saveLobby,
   updateSavedLobby,
-  FullSavedLobby,
-  SavedLobby,
 } from "../../background/store";
-import { createLobby } from "../store/lobbyState";
-import {
-  useBackgroundSelector,
-  useAppSelector,
-  useAppDispatch,
-  useBackgroundDispatch,
-} from "../hooks";
-import { selectUser } from "../store/geoguessrState";
-import Dropdown from "../components/Dropdown";
-import ToolbarHeader from "../components/ToolbarHeader";
-import SignedOut from "../components/SignedOut";
 import CreateNew from "../components/CreateNew";
-import { unwrapResult } from "@reduxjs/toolkit";
+import Dropdown from "../components/Dropdown";
+import LobbyError from "../components/LobbyError";
 import {
   default as SavedLobbyComponent,
   SavedLobbyHeader,
 } from "../components/SavedLobby";
+import SignedOut from "../components/SignedOut";
+import ToolbarHeader from "../components/ToolbarHeader";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useBackgroundDispatch,
+  useBackgroundSelector,
+} from "../hooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 import CurrentLobbyContainer from "./CurrentLobby";
-import LobbyError from "../components/LobbyError";
+import { selectUser, createLobby } from "../store";
 
 function isErroredLobby(
   lobby: SavedLobby | null
@@ -54,7 +53,6 @@ const ToolbarContainer = () => {
   );
   console.log(savedLobbies);
   const [editMode, setEditMode] = useState(false);
-  const [rejoinOpen, setRejoinOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const backgroundDispatch = useBackgroundDispatch();

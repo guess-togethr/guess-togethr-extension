@@ -4,17 +4,8 @@ import { Remote, proxy, releaseProxy, ProxyMarked } from "comlink";
 import { NetworkFeed } from "../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
 import { validateClientMessage, validateServerMessage } from "../protocol";
-import {
-  setInitialSharedState,
-  applySharedStatePatches,
-} from "./store/sharedState";
-import {
-  BreakCycleRootState,
-  userConnected,
-  userDisconnected,
-} from "./store/localState";
-import { addJoinRequest, trackSharedStatePatches } from "./store/lobbyState";
 import { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
+import { BreakCycleRootState, setInitialSharedState, userConnected, userDisconnected, applySharedStatePatches, addJoinRequest, trackSharedStatePatches } from "./store";
 
 const debug = require("debug")("lobby");
 

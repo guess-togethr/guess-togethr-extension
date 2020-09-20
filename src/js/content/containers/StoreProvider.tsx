@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { createStore } from "../store";
-import { Provider } from "react-redux";
 import { Store } from "@reduxjs/toolkit";
+import React, { useEffect, useState } from "react";
+import { Provider, useStore } from "react-redux";
 import { remoteStoreWrapper } from "../../utils";
-import { BackgroundStoreContext, useAppSelector } from "../hooks";
+import { BackgroundStoreContext } from "../hooks";
+import { createStore, selectRedirect } from "../store";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
-import { selectRedirect } from "../store/geoguessrState";
 
 const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
   const backgroundEndpoint = useBackgroundEndpoint();
-  const redirect = Boolean(useAppSelector(selectRedirect));
+  const store = useStore();
   const [backgroundStore, setBackgroundStore] = useState<Store<any> | null>(
     null
   );
 
   useEffect(() => {
-    if (redirect && backgroundStore) {
-      (backgroundStore as any).close();
-    }
-  }, [redirect, backgroundStore]);
-
-  useEffect(() => {
     backgroundEndpoint
       ?.getStore()
       .then(remoteStoreWrapper)
-      .then(setBackgroundStore);
-  }, [backgroundEndpoint]);
+      .then((bgStore) => {
+        store.subscribe(() => {
+          if (selectRedirect(store.getState())) {
+            bgStore.close();
+          }
+        });
+        setBackgroundStore(bgStore);
+      });
+  }, [backgroundEndpoint, store]);
 
   return (
     backgroundStore && (

@@ -15,9 +15,7 @@ browser.runtime.onConnect.addListener((port) => {
   ) {
     return;
   }
-  const endpoint =
-    BackgroundEndpoint.map.get(port.sender.tab.id)?.reconnect() ||
-    new BackgroundEndpoint(port.sender.tab.id);
+  const endpoint = BackgroundEndpoint.create(port.sender.tab.id);
   Comlink.expose(endpoint, createBackgroundEndpoint(port));
   port.onDisconnect.addListener(() => endpoint.startDestroy());
 });

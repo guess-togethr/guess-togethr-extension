@@ -30,7 +30,11 @@ export default class BackgroundEndpoint {
   private currentFeedOpts?: NetworkFeedOpts;
   private readonly alarmName: string;
 
-  constructor(public readonly tabId: number) {
+  public static create(tabId: number) {
+    return BackgroundEndpoint.map.get(tabId) || new BackgroundEndpoint(tabId);
+  }
+
+  private constructor(public readonly tabId: number) {
     browser.tabs.onRemoved.addListener(this.onTabClose);
     browser.alarms.onAlarm.addListener(this.finishDestroy);
     this.alarmName = `gt-${this.tabId}`;

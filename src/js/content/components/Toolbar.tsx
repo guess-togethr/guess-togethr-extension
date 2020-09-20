@@ -11,7 +11,7 @@ import ToolbarHeader from "./ToolbarHeader";
 import CreateNew from "./CreateNew";
 import SavedLobby, { SavedLobbyHeader } from "./SavedLobby";
 import SignedOut from "./SignedOut";
-import { ConnectionState } from "../store/lobbySelectors";
+import { ConnectionState } from "../store";
 
 interface ToolbarProps {
   currentLobby?: {

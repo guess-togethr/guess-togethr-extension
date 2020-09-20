@@ -19,7 +19,7 @@ import ToolbarHeader from "./ToolbarHeader";
 import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
 import { Assignment } from "@material-ui/icons";
 import TextField from "./TextField";
-import { ConnectionState } from "../store/lobbySelectors";
+import { ConnectionState } from "../store";
 
 const useStyles = makeStyles({
   outerContainer: {

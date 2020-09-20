@@ -5,9 +5,9 @@ import {
   useAppDispatch,
   useBackgroundDispatch,
 } from "../hooks";
-import { selectUrl, redirect } from "../store/geoguessrState";
 import { Dialog, DialogTitle, makeStyles } from "@material-ui/core";
 import { releaseSavedLobby } from "../../background/store";
+import { selectUrl, redirect } from "../store";
 
 const useStyles = makeStyles({
   "@global": {
@@ -55,7 +55,7 @@ const LobbyClientShim = () => {
       );
       return;
     }
-    if (challengeUrl === currentChallenge?.id) {
+    if (challengeUrl && challengeUrl === currentChallenge?.id) {
       setInChallenge(true);
     } else if (inChallenge) {
       backgroundDispatch(releaseSavedLobby());

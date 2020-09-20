@@ -2,8 +2,7 @@ import { makeStyles } from "@material-ui/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppDispatch, useExternalDom, useAppSelector } from "../hooks";
-import { setNewChallenge } from "../store/sharedState";
-import { selectUrl, selectUser } from "../store/geoguessrState";
+import { setNewChallenge, selectUser, selectUrl } from "../store";
 
 function unselect(el: Element) {
   el.classList.remove("radio-box--selected");
