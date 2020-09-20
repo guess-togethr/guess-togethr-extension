@@ -5,6 +5,38 @@ import { remoteStoreWrapper } from "../../utils";
 import { BackgroundStoreContext } from "../hooks";
 import { createStore, selectRedirect } from "../store";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
+import { createLogger } from "redux-logger";
+
+const logger = createLogger({
+  logger: new Proxy(console, {
+    get: (target: any, prop) => {
+      if (prop === "group") {
+        return (data: any) => target.group(...data);
+      }
+      return target[prop];
+    },
+  }),
+  titleFormatter: (action, time) => {
+    const headerCSS = [
+      "color: gray; font-weight: lighter;",
+      "color: inherit;",
+      "color: gray; font-weight: lighter;",
+    ];
+    const parts = [
+      "%c BACKGROUND action",
+      `%c${String(action.type)}`,
+      `%c@ ${time}`,
+    ];
+
+    return [parts.join(" "), ...headerCSS] as any;
+  },
+  level: {
+    prevState: "log",
+    action: "log",
+    error: "log",
+    nextState: false,
+  },
+});
 
 const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
   const backgroundEndpoint = useBackgroundEndpoint();
@@ -16,7 +48,7 @@ const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
   useEffect(() => {
     backgroundEndpoint
       ?.getStore()
-      .then(remoteStoreWrapper)
+      .then((store) => remoteStoreWrapper(store, logger))
       .then((bgStore) => {
         store.subscribe(() => {
           if (selectRedirect(store.getState())) {

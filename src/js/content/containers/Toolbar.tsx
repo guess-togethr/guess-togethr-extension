@@ -51,7 +51,6 @@ const ToolbarContainer = () => {
       !lobby.user ||
       (currentUser && lobby.user === currentUser.id)
   );
-  console.log(savedLobbies);
   const [editMode, setEditMode] = useState(false);
 
   const dispatch = useAppDispatch();

@@ -9,6 +9,8 @@ import {
   StateFromReducersMapObject,
   ActionFromReducersMapObject,
   CombinedState,
+  applyMiddleware,
+  Middleware,
 } from "@reduxjs/toolkit";
 import { Patch, Draft, isDraft, isDraftable } from "immer";
 
@@ -212,8 +214,9 @@ export function crc32(buf: Uint8Array) {
 //   };
 // }
 
-export async function remoteStoreWrapper<S extends any>(
-  remoteStore: Remote<Store<S>>
+export async function remoteStoreWrapper<S>(
+  remoteStore: Remote<Store<S>>,
+  ...middlewares: Middleware<{}, S>[]
 ): Promise<Store<S> & { close: () => void }> {
   const subscribers = new Set<() => void>();
   let closed = false;
@@ -226,7 +229,7 @@ export async function remoteStoreWrapper<S extends any>(
       subscribers.forEach((f) => f());
     })
   );
-  return {
+  const createStore: () => Store<S> = () => ({
     close: () => {
       console.log("CLOSED");
       closed = true;
@@ -245,7 +248,11 @@ export async function remoteStoreWrapper<S extends any>(
     [Symbol.observable]: () => {
       throw new Error("Symbol.observable not implemeneted");
     },
-  };
+  });
+
+  return middlewares.length
+    ? (applyMiddleware(...middlewares)(createStore as any) as any)()
+    : createStore();
 }
 
 export interface TabAwareStore<S, A extends AnyAction> extends Store<S, A> {
