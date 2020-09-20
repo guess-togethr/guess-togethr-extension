@@ -3628,7 +3628,7 @@ combined-stream@^1.0.6, combined-stream@~1.0.6:
 
 "comlink-extension@https://github.com/arseneyr/comlink-extension.git#promise-fix-built":
   version "1.0.8"
-  resolved "https://github.com/arseneyr/comlink-extension.git#7b49239834a151ffa2eb124207070ad76b7e4804"
+  resolved "https://github.com/arseneyr/comlink-extension.git#0ce6fe65dd7d448ba01ff7514cccd493ebf997e7"
   dependencies:
     webextension-polyfill-ts "^0.19.0"
 
