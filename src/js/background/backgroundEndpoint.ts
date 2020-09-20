@@ -31,7 +31,10 @@ export default class BackgroundEndpoint {
   private readonly alarmName: string;
 
   public static create(tabId: number) {
-    return BackgroundEndpoint.map.get(tabId) || new BackgroundEndpoint(tabId);
+    return (
+      BackgroundEndpoint.map.get(tabId)?.reconnect() ||
+      new BackgroundEndpoint(tabId)
+    );
   }
 
   private constructor(public readonly tabId: number) {
