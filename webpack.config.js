@@ -30,7 +30,6 @@ var options = {
   context: path.resolve(__dirname, "src"),
   mode: process.env.NODE_ENV || "development",
   entry: {
-    options: "./js/options.ts",
     background: "./js/background/background.ts",
     content: [
       process.env.NODE_ENV === "development" && "react-devtools",
@@ -113,26 +112,7 @@ var options = {
       ],
     }),
     new CopyWebpackPlugin({ patterns: [{ from: "./img/icon-128.png" }] }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, "src", "popup.html"),
-      filename: "popup.html",
-      chunks: ["popup"],
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, "src", "options.html"),
-      filename: "options.html",
-      chunks: ["options"],
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, "src", "background.html"),
-      filename: "background.html",
-      chunks: ["background"],
-    }),
     new WriteFilePlugin(),
-    new webpack.NormalModuleReplacementPlugin(
-      /hyperlog[\\\/]lib[\\\/]messages.js$/,
-      path.resolve(__dirname, "src/js/hyperlog_hack.js")
-    ),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
     }),

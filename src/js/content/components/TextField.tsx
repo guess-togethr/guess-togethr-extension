@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback } from "react";
+import React, { useCallback } from "react";
 import { TextFieldProps, TextField as MuiTextField } from "@material-ui/core";
 
 const TextField = React.forwardRef<any, TextFieldProps>((props, ref) => {

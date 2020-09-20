@@ -5,7 +5,7 @@ import {
   useAppDispatch,
   useBackgroundDispatch,
 } from "../hooks";
-import { Dialog, DialogTitle, makeStyles } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core";
 import { releaseSavedLobby } from "../../background/store";
 import { selectUrl, redirect } from "../store";
 
