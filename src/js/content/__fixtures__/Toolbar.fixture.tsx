@@ -1,7 +1,7 @@
 import React from "react";
 import faker from "faker";
 import Toolbar from "../components/Toolbar";
-import { ConnectionState } from "../store/lobbyState";
+import { ConnectionState } from "../store";
 
 export default {
   unconnected: (

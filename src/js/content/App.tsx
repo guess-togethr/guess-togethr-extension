@@ -15,7 +15,7 @@ const App: React.FunctionComponent = () => {
 
   return user !== null ? (
     <ToolbarMonitor>
-      <ThemeProvider>
+      <ThemeProvider type="dark">
         <ToolbarContainer />
       </ThemeProvider>
     </ToolbarMonitor>
