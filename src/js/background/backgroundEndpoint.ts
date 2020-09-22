@@ -10,6 +10,7 @@ import { browser, WebNavigation } from "webextension-polyfill-ts";
 import { initializeNetworking, NetworkFeed, NetworkFeedOpts } from "./network";
 import equal from "fast-deep-equal";
 import * as Comlink from "comlink";
+import { TimerHandle, clearTimer, setTimer } from "./timer";
 
 const debug = require("debug")("background-endpoint");
 
@@ -28,7 +29,7 @@ export default class BackgroundEndpoint {
   private store?: TabAwareStore<BackgroundRootState, AnyAction>;
   private currentFeed?: NetworkFeed;
   private currentFeedOpts?: NetworkFeedOpts;
-  private readonly alarmName: string;
+  private destroyTimer: TimerHandle | null = null;
 
   public static create(tabId: number) {
     return (
@@ -39,15 +40,15 @@ export default class BackgroundEndpoint {
 
   private constructor(public readonly tabId: number) {
     browser.tabs.onRemoved.addListener(this.onTabClose);
-    browser.alarms.onAlarm.addListener(this.finishDestroy);
-    this.alarmName = `gt-${this.tabId}`;
     BackgroundEndpoint.map.set(tabId, this);
   }
 
   public reconnect() {
-    debug("reconnecting", this.tabId);
-    this.destroying = false;
-    browser.alarms.clear(this.alarmName);
+    if (this.destroyTimer) {
+      debug("reconnecting", this.tabId);
+      clearTimer(this.destroyTimer);
+      this.destroyTimer = null;
+    }
     return this;
   }
 
@@ -105,19 +106,21 @@ export default class BackgroundEndpoint {
       this.urlListeners.length = 0;
       this.store?.reset();
       this.currentFeed?.disconnect();
-      browser.alarms.create(this.alarmName, { when: Date.now() + 20 * 1000 });
+      this.destroyTimer = setTimer(this.finishDestroy, 20 * 1000);
     }
   }
 
   private finishDestroy = () => {
     debug("finish destroy", this.tabId);
-    browser.alarms.clear(this.alarmName);
+    if (this.destroyTimer) {
+      clearTimer(this.destroyTimer);
+      this.destroyTimer = null;
+    }
 
     BackgroundEndpoint.map.delete(this.tabId);
     this.store?.dispatch(releaseSavedLobby());
     this.currentFeed?.destroy();
 
-    browser.alarms.onAlarm.removeListener(this.finishDestroy);
     browser.tabs.onRemoved.removeListener(this.onTabClose);
   };
 }
