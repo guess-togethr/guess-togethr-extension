@@ -17,7 +17,13 @@ const useStyles = makeStyles({
   },
 });
 
-const LobbyClientShimComponent = () => {
+interface LobbyClientShimComponentProps {
+  challengeId: string;
+}
+
+const LobbyClientShimComponent: React.FunctionComponent<LobbyClientShimComponentProps> = ({
+  challengeId,
+}) => {
   useStyles();
   const goButton = useExternalDom(
     document,
@@ -77,8 +83,8 @@ const LobbyClientShim = () => {
     [dispatch]
   );
 
-  return challengeUrl === currentChallenge?.id ? (
-    <LobbyClientShimComponent />
+  return challengeUrl && challengeUrl === currentChallenge?.id ? (
+    <LobbyClientShimComponent challengeId={challengeUrl} />
   ) : null;
 };
 

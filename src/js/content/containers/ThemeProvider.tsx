@@ -19,6 +19,16 @@ const ThemeProvider: React.FunctionComponent<ThemeProviderProps> = ({
         palette: { type },
         typography: {
           fontFamily: "Open Sans, helvetica",
+          h1: {
+            fontFamily: "Roboto Slab, serif",
+            fontSize: "2rem",
+            lineHeight: "2.5rem",
+          },
+          h3: {
+            fontFamily: "Roboto Slab, serif",
+            fontSize: "1.25rem",
+            lineHeight: "1.625rem",
+          },
           h6: {
             fontFamily: "Roboto Slab, serif",
             fontSize: 18,

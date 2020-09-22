@@ -37,6 +37,7 @@
     "ajv": "^6.12.3",
     "ajv-pack": "^0.3.1",
     "buffer": "^5.6.0",
+    "clsx": "^1.1.1",
     "comlink": "^4.3.0",
     "comlink-extension": "https://github.com/arseneyr/comlink-extension.git#promise-fix-built",
     "cross-env": "^7.0.2",
