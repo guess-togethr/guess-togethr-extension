@@ -23,6 +23,7 @@ const ThemeProvider: React.FunctionComponent<ThemeProviderProps> = ({
             fontFamily: "Roboto Slab, serif",
             fontSize: "2rem",
             lineHeight: "2.5rem",
+            color: "#00343a",
           },
           h3: {
             fontFamily: "Roboto Slab, serif",

@@ -1,6 +1,6 @@
 import { RootState } from ".";
 import { createSelector } from "@reduxjs/toolkit";
-import { selectUser } from "./geoguessrState";
+import { selectUser, userCacheSelectors } from "./geoguessrState";
 
 export enum ConnectionState {
   Disconnected,
@@ -25,10 +25,6 @@ export const selectOnlineMembers = createSelector(
       return [];
     }
 
-    // return onlineUsers.reduce(
-    //   (a, c) => a.concat(...[members.find((m) => m.publicKey === c) ?? []]),
-    //   [] as User[]
-    // );
     return members.filter(({ publicKey }) => onlineUsers.includes(publicKey));
   }
 );
@@ -38,6 +34,13 @@ export const selectOwner = createSelector(
   selectMembers,
   (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
 );
+
+export const selectOwnerGgUser = createSelector(
+  selectOwner,
+  userCacheSelectors.selectEntities,
+  (owner, cache) => (owner && cache[owner.ggId]) || null
+);
+
 export const selectConnectionState = createSelector(
   selectUser,
   (state: RootState) => state.lobby.localState,

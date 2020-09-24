@@ -14,6 +14,9 @@ import {
 } from "@reduxjs/toolkit";
 import { Patch, Draft, isDraft, isDraftable } from "immer";
 
+type Without<T> = { [P in keyof T]?: undefined };
+export type XOR<T, U> = (Without<T> & U) | (Without<U> & T);
+
 type DraftableReducer<S, A = AnyAction> = (
   state: undefined | Draft<S>,
   action: A

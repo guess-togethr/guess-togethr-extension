@@ -1,56 +1,57 @@
 import React from "react";
-import { makeStyles } from "@material-ui/core";
+import { makeStyles, Theme } from "@material-ui/core";
 import clsx from "clsx";
 
-interface CheckmarkProps {
+interface CheckmarkProps extends React.HTMLProps<HTMLDivElement> {
   checked?: boolean;
   disableCircle?: boolean;
+  color?: string;
 }
 
 const SIZE = 30;
 const adjustSize = (original: number) => (original / 80) * SIZE;
 
-const useStyles = makeStyles({
+const useStyles = makeStyles<Theme, CheckmarkProps>({
   checked: {},
-  disableCircle: {},
+  enableCircle: {},
   checkIcon: {
     width: SIZE,
     height: SIZE,
     position: "relative",
     borderRadius: "50%",
     boxSizing: "content-box",
-    border: "4px solid #4CAF50",
-    "&$disableCircle": {
-      borderColor: "transparent",
-    },
-    "&::before": {
-      top: -5,
-      left: -4,
-      width: adjustSize(30),
-      transformOrigin: `${SIZE / 2 + 4}px 50%`,
-      borderRadius: `${SIZE * 1.25}px 0 0 ${SIZE * 1.25}px`,
-    },
-    "&::after": {
-      top: -6,
-      left: adjustSize(30) - 5,
-      width: adjustSize(60) + 6,
-      transformOrigin: `${SIZE / 2 - adjustSize(30) + 5}px 50%`,
-      borderRadius: `0 ${SIZE * 1.25}px ${SIZE * 1.25}px 0`,
-    },
-    "&::before, &::after": {
-      content: '""',
-      height: SIZE + 12,
-      position: "absolute",
-      background: "#ffffff",
-      transform: "rotate(-45deg)",
-    },
-    "&$checked::after": {
-      animation: "$rotateCircle 4.25s ease-in",
+    border: "4px solid transparent",
+    "&$enableCircle": {
+      border: "4px solid #4CAF50",
+      "&::before": {
+        top: -5,
+        left: -4,
+        width: adjustSize(30),
+        transformOrigin: `${SIZE / 2 + 4}px 50%`,
+        borderRadius: `${SIZE * 1.25}px 0 0 ${SIZE * 1.25}px`,
+      },
+      "&::after": {
+        top: -6,
+        left: adjustSize(30) - 5,
+        width: adjustSize(60) + 6,
+        transformOrigin: `${SIZE / 2 - adjustSize(30) + 5}px 50%`,
+        borderRadius: `0 ${SIZE * 1.25}px ${SIZE * 1.25}px 0`,
+      },
+      "&::before, &::after": {
+        content: '""',
+        height: SIZE + 12,
+        position: "absolute",
+        background: "#ffffff",
+        transform: "rotate(-45deg)",
+      },
+      "&$checked::after": {
+        animation: "$rotateCircle 4.25s ease-in",
+      },
     },
   },
   iconLine: {
     height: adjustSize(8),
-    backgroundColor: "#4caf50",
+    backgroundColor: (props) => props.color || "#4caf50",
     display: "block",
     borderRadius: 2,
     position: "absolute",
@@ -62,10 +63,10 @@ const useStyles = makeStyles({
     width: 0,
     transform: "rotate(45deg)",
     "$checkIcon$checked > &": {
-      animation: "$iconLineTip 0.35s 0.4s forwards",
+      animation: "$iconLineTip 0.35s forwards",
     },
-    "$checkIcon$checked$disableCircle > &": {
-      animationDelay: "0s",
+    "$checkIcon$checked$enableCircle > &": {
+      animationDelay: "0.4s",
     },
   },
   lineLong: {
@@ -74,10 +75,10 @@ const useStyles = makeStyles({
     width: 0,
     transform: "rotate(-45deg)",
     "$checkIcon$checked > &": {
-      animation: "$iconLineLong 0.26s 0.49s forwards",
+      animation: "$iconLineLong 0.26s 0.09s forwards",
     },
-    "$checkIcon$checked$disableCircle > &": {
-      animationDelay: "0.09s",
+    "$checkIcon$checked$enableCircle > &": {
+      animationDelay: "0.49s",
     },
   },
   iconCircle: {
@@ -104,6 +105,7 @@ const useStyles = makeStyles({
     position: "absolute",
     transform: "rotate(-45deg)",
     backgroundColor: "#ffffff",
+    display: "none",
   },
   "@keyframes rotateCircle": {
     "0%": {
@@ -160,23 +162,23 @@ const useStyles = makeStyles({
   },
 });
 
-const Checkmark: React.FunctionComponent<CheckmarkProps> = ({
-  checked,
-  disableCircle,
-}) => {
-  const classes = useStyles();
+const Checkmark: React.FunctionComponent<CheckmarkProps> = (props) => {
+  const { className, checked, disableCircle, ...rest } = props;
+  const classes = useStyles(props);
   return (
     <div
       className={clsx(
         classes.checkIcon,
         checked && classes.checked,
-        disableCircle && classes.disableCircle
+        !disableCircle && classes.enableCircle,
+        className
       )}
+      {...rest}
     >
       <span className={`${classes.iconLine} ${classes.lineTip}`} />
       <span className={`${classes.iconLine} ${classes.lineLong}`} />
       {disableCircle ? null : <div className={classes.iconCircle} />}
-      <div className={classes.iconFix} />
+      {/* <div className={classes.iconFix} /> */}
     </div>
   );
 };
