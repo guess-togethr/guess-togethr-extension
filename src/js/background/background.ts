@@ -57,3 +57,23 @@ browser.webNavigation.onBeforeNavigate.addListener(
     url: [{ hostEquals: "guess-togethr.github.io", queryContains: "join" }],
   }
 );
+
+browser.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (
+      (details.originUrl || (details as any).initiator)?.match(
+        /^https:\/\/www\.geoguessr\.com/
+      )
+    ) {
+      const url = new URL(details.url);
+      if (url.searchParams.get("callback") !== "ggIntercept") {
+        url.searchParams.set("callback", "ggIntercept");
+        return { redirectUrl: url.href };
+      }
+    }
+  },
+  {
+    urls: ["https://maps.googleapis.com/maps/api/js?*"],
+  },
+  ["blocking"]
+);

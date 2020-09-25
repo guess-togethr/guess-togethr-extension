@@ -35,6 +35,7 @@ var options = {
       process.env.NODE_ENV === "development" && "react-devtools",
       "./js/content/content.tsx",
     ].filter(Boolean),
+    interceptor: "./js/content/mapsInterceptor.ts",
   },
   output: {
     path: path.resolve(__dirname, "build"),

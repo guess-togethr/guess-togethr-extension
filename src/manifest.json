@@ -1,5 +1,6 @@
 {
   "name": "Chrome Extension Webpack",
+  "manifest_version": 2,
   "background": {
     "scripts": ["background.bundle.js"]
   },
@@ -9,17 +10,25 @@
   "content_scripts": [
     {
       "matches": ["https://www.geoguessr.com/*"],
-      "js": ["content.bundle.js"],
+      "js": ["content.bundle.js"]
+    },
+    {
+      "matches": ["https://www.geoguessr.com/*"],
+      "js": ["interceptor.bundle.js"],
       "run_at": "document_start"
     }
   ],
-  "manifest_version": 2,
+  "externally_connectable": {},
   "permissions": [
     "storage",
+    "webRequest",
+    "webRequestBlocking",
     "webNavigation",
     "tabs",
     "alarms",
-    "https://www.geoguessr.com/*"
+    "https://www.geoguessr.com/*",
+    "https://maps.googleapis.com/maps/api/js?*"
   ],
+  "web_accessible_resources": ["interceptor.bundle.js"],
   "content_security_policy": "script-src 'self' 'unsafe-eval' http://127.0.0.1:3000/; object-src 'self'"
 }

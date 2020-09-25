@@ -6,6 +6,12 @@ import StoreProvider from "./containers/StoreProvider";
 import ThemeProvider from "./containers/ThemeProvider";
 import ToolbarMonitor from "./ggShims/ToolbarMonitor";
 import { selectUser } from "./store";
+import { browser } from "webextension-polyfill-ts";
+import MapProxyProvider from "./containers/MapProxyProvider";
+
+const script = document.createElement("script");
+script.src = browser.runtime.getURL("interceptor.bundle.js");
+document.head.appendChild(script);
 
 const App: React.FunctionComponent = () => {
   const user = useAppSelector(selectUser);
@@ -23,9 +29,11 @@ const App: React.FunctionComponent = () => {
 };
 
 export default () => (
-  <BackgroundEndpointProvider>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
-  </BackgroundEndpointProvider>
+  <MapProxyProvider>
+    <BackgroundEndpointProvider>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </BackgroundEndpointProvider>
+  </MapProxyProvider>
 );
