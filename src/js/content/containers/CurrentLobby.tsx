@@ -7,7 +7,7 @@ import {
 } from "../../background/store";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import Shims from "../ggShims";
-import { useAppSelector, useBackgroundDispatch } from "../hooks";
+import { useAppSelector, useBackgroundDispatch } from "../storeHooks";
 import {
   AppDispatch,
   createLobby,

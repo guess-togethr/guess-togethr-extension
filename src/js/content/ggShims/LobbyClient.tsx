@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   useAppSelector,
-  useExternalDom,
   useAppDispatch,
   useBackgroundDispatch,
-} from "../hooks";
+} from "../storeHooks";
 import { makeStyles } from "@material-ui/core";
 import { releaseSavedLobby } from "../../background/store";
 import { selectUrl, redirect } from "../store";
+import { useExternalDom } from "../hooks";
 
 const useStyles = makeStyles({
   "@global": {

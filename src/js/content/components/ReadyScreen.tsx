@@ -94,7 +94,7 @@ const UserListItem: React.FunctionComponent<UserListItemProps> = (props) => {
   );
 };
 
-type ReadyScreenProps = {
+export type ReadyScreenProps = {
   lobbyName: string;
   currentRound?: { mapName: string; round: number };
   ownerName: string;

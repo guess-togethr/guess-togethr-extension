@@ -1,6 +1,5 @@
 import React from "react";
 import ToolbarContainer from "./containers/Toolbar";
-import { useAppSelector, useUrlMonitor, useUserMonitor } from "./hooks";
 import BackgroundEndpointProvider from "./containers/BackgroundEndpointProvider";
 import StoreProvider from "./containers/StoreProvider";
 import ThemeProvider from "./containers/ThemeProvider";
@@ -8,6 +7,7 @@ import ToolbarMonitor from "./ggShims/ToolbarMonitor";
 import { selectUser } from "./store";
 import { browser } from "webextension-polyfill-ts";
 import MapProxyProvider from "./containers/MapProxyProvider";
+import { useAppSelector, useUrlMonitor, useUserMonitor } from "./storeHooks";
 
 const script = document.createElement("script");
 script.src = browser.runtime.getURL("interceptor.bundle.js");

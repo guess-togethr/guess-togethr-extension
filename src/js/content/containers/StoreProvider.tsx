@@ -2,7 +2,7 @@ import { Store } from "@reduxjs/toolkit";
 import React, { useEffect, useState } from "react";
 import { Provider, useStore } from "react-redux";
 import { remoteStoreWrapper } from "../../utils";
-import { BackgroundStoreContext } from "../hooks";
+import { BackgroundStoreContext } from "../storeHooks";
 import { createStore, selectRedirect } from "../store";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 import { createLogger } from "redux-logger";

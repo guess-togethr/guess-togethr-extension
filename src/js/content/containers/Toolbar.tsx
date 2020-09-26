@@ -30,7 +30,7 @@ import {
   useAppSelector,
   useBackgroundDispatch,
   useBackgroundSelector,
-} from "../hooks";
+} from "../storeHooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 import CurrentLobbyContainer from "./CurrentLobby";
 import { selectUser, createLobby } from "../store";

@@ -45,32 +45,55 @@ var options = {
   module: {
     rules: [
       {
-        test: /\.css$/,
-        loader: "style-loader!css-loader",
-        exclude: /node_modules/,
-      },
-      {
-        test: new RegExp(".(" + fileExtensions.join("|") + ")$"),
-        loader: "file-loader?name=[name].[ext]",
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.html$/,
-        loader: "html-loader",
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.(j|t)sx?$/,
-        loader: "babel-loader",
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.svg$/,
-        loader: "@svgr/webpack",
-      },
-      {
         test: /remote-redux-devtools/,
         sideEffects: false,
+      },
+      {
+        oneOf: [
+          {
+            test: /result_files/,
+            loader: "file-loader",
+          },
+          {
+            test: /\.css$/,
+            loader: "style-loader!css-loader",
+            exclude: /node_modules/,
+          },
+          {
+            test: new RegExp(".(" + fileExtensions.join("|") + ")$"),
+            loader: "file-loader?name=[name].[ext]",
+            exclude: /node_modules/,
+          },
+          {
+            test: /\.html$/,
+            loader: "html-loader",
+            exclude: /node_modules/,
+            options: {
+              esModule: true,
+              attributes: {
+                list: [
+                  {
+                    tag: "link",
+                    attribute: "href",
+                    type: "src",
+                    filter: (tag, attribute, attributes) =>
+                      /stylesheet/i.test(attributes.rel),
+                  },
+                  { tag: "img", attribute: "src", type: "src" },
+                ],
+              },
+            },
+          },
+          {
+            test: /\.(j|t)sx?$/,
+            loader: "babel-loader",
+            exclude: /node_modules/,
+          },
+          {
+            test: /\.svg$/,
+            loader: "@svgr/webpack",
+          },
+        ],
       },
     ],
   },

@@ -1,8 +1,9 @@
 import { makeStyles } from "@material-ui/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAppDispatch, useExternalDom, useAppSelector } from "../hooks";
+import { useAppDispatch, useAppSelector } from "../storeHooks";
 import { setNewChallenge, selectUser, selectUrl } from "../store";
+import { useExternalDom } from "../hooks";
 
 function unselect(el: Element) {
   el.classList.remove("radio-box--selected");

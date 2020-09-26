@@ -6,6 +6,6 @@
   "watchDirs": ["./src"],
   "globalImports": [
     "./src/js/content/global.ts",
-    "./src/js/content/__fixtures__/global.css"
+    "./src/js/content/fixtures/global.css"
   ]
 }

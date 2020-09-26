@@ -4,3 +4,4 @@ secrets.*.js
 *.log
 NOTES
 .env*
+sample_pages/
