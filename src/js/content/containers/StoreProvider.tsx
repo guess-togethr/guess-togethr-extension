@@ -50,6 +50,7 @@ const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
       ?.getStore()
       .then((store) => remoteStoreWrapper(store, logger))
       .then((bgStore) => {
+        // Prevent dispatches to background store if we're redirecting
         store.subscribe(() => {
           if (selectRedirect(store.getState())) {
             bgStore.close();

@@ -1,22 +1,35 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Remote, releaseProxy } from "comlink";
+import * as Comlink from "comlink";
 import { MapProxyManager } from "../mapProxy";
 
-const MapProxyContext = createContext<Remote<google.maps.Map> | null>(null);
+const MapProxyContext = createContext<Comlink.Remote<google.maps.Map> | null>(
+  null
+);
 
 export const useMapProxy = () => useContext(MapProxyContext);
 
 const MapProxyProvider: React.FunctionComponent = ({ children }) => {
-  const [proxy, setProxy] = useState<Remote<google.maps.Map> | null>(null);
+  const [proxy, setProxy] = useState<Comlink.Remote<google.maps.Map> | null>(
+    null
+  );
   useEffect(() => {
     (async function go() {
       for await (const p of new MapProxyManager()) {
         console.log(p);
         if (p.type === "Map") {
           setProxy((old) => {
-            old?.[releaseProxy]();
-            return p.proxy as Remote<google.maps.Map>;
+            old?.[Comlink.releaseProxy]();
+            return p.proxy as Comlink.Remote<google.maps.Map>;
           });
+        } else if (p.type === "StreetViewPanorama") {
+          (p.proxy as Comlink.Remote<
+            google.maps.StreetViewPanorama
+          >).addListener(
+            "position_changed",
+            Comlink.proxy((e) => {
+              e.lat().then(console.log);
+            })
+          );
         }
       }
     })();

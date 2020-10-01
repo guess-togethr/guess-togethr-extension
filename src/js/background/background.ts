@@ -67,9 +67,11 @@ browser.webRequest.onBeforeRequest.addListener(
     ) {
       const url = new URL(details.url);
       if (url.searchParams.get("callback") !== "ggIntercept") {
-        url.searchParams.set("callback", "ggIntercept");
-        return { redirectUrl: url.href };
+        // url.searchParams.set("callback", "ggIntercept");
+        // return { redirectUrl: url.href };
+        return { cancel: true };
       }
+      // return {cancel: true}
     }
   },
   {
