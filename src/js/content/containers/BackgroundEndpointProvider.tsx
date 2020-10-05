@@ -7,7 +7,7 @@ import { wrap } from "comlink";
 
 export type RemoteBackgroundEndpoint = CachedRemote<
   BackgroundEndpoint,
-  "tabId"
+  "tabId" | "timeDelta"
 >;
 
 const BackgroundEndpointContext = createContext<RemoteBackgroundEndpoint | null>(
@@ -18,15 +18,16 @@ export const useBackgroundEndpoint = () =>
   useContext(BackgroundEndpointContext);
 
 const BackgroundEndpointProvider: React.FunctionComponent = ({ children }) => {
-  const [backgroundEndpoint, setBackgroundEndpoint] = useState<CachedRemote<
-    BackgroundEndpoint,
-    "tabId"
-  > | null>(null);
+  const [
+    backgroundEndpoint,
+    setBackgroundEndpoint,
+  ] = useState<RemoteBackgroundEndpoint | null>(null);
 
   useEffect(() => {
     cacheRemoteProperties(
       wrap<BackgroundEndpoint>(createEndpoint(browser.runtime.connect())),
-      "tabId"
+      "tabId",
+      "timeDelta"
     ).then((be) => {
       // Important to wrap in a function. Otherwise, React tries to call
       // the background endpoint as a function

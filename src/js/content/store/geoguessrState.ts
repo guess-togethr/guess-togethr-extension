@@ -58,10 +58,12 @@ export const queryUsers = createAsyncThunk<
   { state: { geoguessr: GeoguessrState } }
 >(
   "geoguessr/queryUsers",
-  async (ids, { getState }) =>
-    (
+  async (ids, { getState }) => {
+    const existingIds = userCacheSelectors.selectIds(getState());
+    const filteredIds = ids.filter((id) => !existingIds.includes(id));
+    return (
       await Promise.all(
-        ids.map(async (id) => {
+        filteredIds.map(async (id) => {
           const response = await fetch(`/api/v3/users/${id}`);
           if (response.ok) {
             const body = await response.json();
@@ -70,7 +72,14 @@ export const queryUsers = createAsyncThunk<
           return false;
         })
       )
-    ).filter(Boolean) as GeoguessrUser[]
+    ).filter(Boolean) as GeoguessrUser[];
+  }
+  // {
+  //   condition: (ids, { getState }) => {
+  //     const existingIds = userCacheSelectors.selectIds(getState());
+  //     return ids.filter((id) => !existingIds.includes(id)).length > 0;
+  //   },
+  // }
 );
 
 const geoguessrSlice = createSlice({
@@ -106,9 +115,9 @@ const geoguessrSlice = createSlice({
       }),
 });
 
-export const geoguessrMiddleware: Middleware = (store) => (next) => (
-  action
-) => {
+export const geoguessrMiddleware: Middleware<{}, RootState> = (store) => (
+  next
+) => (action) => {
   if (redirect.match(action)) {
     next(action);
     if (window.location.href !== action.payload) {
@@ -117,7 +126,23 @@ export const geoguessrMiddleware: Middleware = (store) => (next) => (
     return;
   }
   // Swallow actions if we're redirecting
-  if (!selectRedirect(store.getState())) return next(action);
+  if (selectRedirect(store.getState())) {
+    return;
+  }
+
+  const ret = next(action);
+
+  // Update user cache if there are some new join requests or actual users
+  const state = store.getState();
+  const existingIds = userCacheSelectors.selectIds(state);
+  const userList = (state.lobby.serverState?.users ?? [])
+    .concat(state.lobby.localState?.joinRequests ?? [])
+    .map(({ ggId }) => ggId)
+    .filter((id) => !existingIds.includes(id));
+  if (userList.length) {
+    store.dispatch(queryUsers(userList) as any);
+  }
+  return ret;
 };
 
 export const selectUser = createSelector(

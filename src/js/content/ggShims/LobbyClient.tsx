@@ -4,10 +4,10 @@ import {
   useAppDispatch,
   useBackgroundDispatch,
 } from "../storeHooks";
-import { makeStyles } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core/styles";
 import { releaseSavedLobby } from "../../background/store";
 import { selectUrl, redirect } from "../store";
-import { useExternalDom } from "../hooks";
+import { useGgGame } from "../hooks";
 
 const useStyles = makeStyles({
   "@global": {
@@ -25,11 +25,6 @@ const LobbyClientShimComponent: React.FunctionComponent<LobbyClientShimComponent
   challengeId,
 }) => {
   useStyles();
-  const goButton = useExternalDom(
-    document,
-    "button.confirmation-dialog__action",
-    true
-  ) as HTMLButtonElement;
   return null;
 };
 
@@ -44,12 +39,13 @@ const LobbyClientShim = () => {
   );
   const currentLobby = useAppSelector((state) => state.lobby.localState);
   const currentChallenge = useAppSelector(
-    (state) => state.lobby.sharedState?.currentChallenge
+    (state) => state.lobby.serverState?.currentChallenge
   );
   const [inChallenge, setInChallenge] = useState(false);
   const dispatch = useAppDispatch();
   const backgroundDispatch = useBackgroundDispatch();
   const isClient = currentLobby && !currentLobby.isServer;
+  const game = useGgGame(currentChallenge?.id ?? null);
 
   useEffect(() => {
     if (!isClient) {

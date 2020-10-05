@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import {
   Button,
-  makeStyles,
   ListItem,
   InputAdornment,
   IconButton,
@@ -20,6 +19,7 @@ import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
 import { Assignment } from "@material-ui/icons";
 import TextField from "./TextField";
 import { ConnectionState } from "../store";
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles({
   outerContainer: {
@@ -67,6 +67,7 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
       case ConnectionState.Connecting:
         return "Connecting";
       case ConnectionState.GettingInitialData:
+        return "Waiting for P2P connection";
       case ConnectionState.WaitingForHost:
         return "Waiting for host";
       case ConnectionState.WaitingForJoin:

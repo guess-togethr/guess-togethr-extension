@@ -1,4 +1,14 @@
-import { useRef, useLayoutEffect, useState, useEffect } from "react";
+import {
+  useRef,
+  useLayoutEffect,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import { validateGeoguessrGame } from "!schema-loader!./ggApiSchema.ts";
+import { GeoguessrGame } from "./ggApiSchema";
+import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 export const useDimensions = () => {
   const ref = useRef<Element>();
@@ -19,18 +29,23 @@ export const useDimensions = () => {
   return [ref, dimensions];
 };
 
-export const useExternalDom = (
+export const useExternalDom = <T extends Element = Element>(
   root: Element | Document | null,
   selector: string,
-  oneShot: boolean = false
+  oneShot: boolean = false,
+  moOptions: MutationObserverInit = {
+    subtree: true,
+    attributes: false,
+    childList: true,
+  }
 ) => {
-  const [foundNode, setFoundNode] = useState<Element | null>(
+  const [foundNode, setFoundNode] = useState<T | null>(
     () => root?.querySelector(selector) ?? null
   );
   useEffect(() => {
     if (root && (!oneShot || !foundNode)) {
       let mo: MutationObserver | null = new MutationObserver(() => {
-        const node = root.querySelector(selector);
+        const node = root.querySelector<T>(selector);
         setFoundNode(node);
         if (oneShot && node) {
           mo?.disconnect();
@@ -45,17 +60,42 @@ export const useExternalDom = (
   return foundNode;
 };
 
-// export const useJoin = () => {
-//   const url = useAppSelector(selectUrl);
-//   const [joinId, setJoinId] = useState<string | null>(null);
-//   useEffect(() => {
-//     const parsedUrl = new URL(url);
-//     const id = parsedUrl.searchParams.get("join");
-//     if (parsedUrl.hostname === "www.geoguessr.com" && id) {
-//       setJoinId(id);
-//       parsedUrl.searchParams.delete("join");
-//       window.location.href = parsedUrl.href;
-//     }
-//   }, [url]);
-//   return joinId;
-// };
+async function getGame(challengeId: string) {
+  let response = await fetch(`/api/v3/challenges/${challengeId}/game`);
+  if (response.status === 404) {
+    response = await fetch(`/api/v3/challenges/${challengeId}`, {
+      method: "POST",
+    });
+  }
+
+  if (!response.ok) {
+    throw new Error((await response.json()).message);
+  }
+
+  const isValid = validateGeoguessrGame(await response.json());
+  if (!isValid) {
+    throw new Error("GG sent invalid game");
+  }
+
+  return (await response.json()) as GeoguessrGame;
+}
+
+export const useGgGame = (challengeId: string | null) => {
+  const [game, setGame] = useState<GeoguessrGame | null>(null);
+
+  useEffect(() => {
+    if (!challengeId || game) {
+      return;
+    }
+    getGame(challengeId).then(setGame).catch(console.error);
+  }, [game, challengeId]);
+
+  return game;
+};
+
+export function useAdjustedTime() {
+  const be = useBackgroundEndpoint();
+  return useCallback(() => {
+    return new Date(Date.now() - (be?.timeDelta ?? 0));
+  }, [be]);
+}

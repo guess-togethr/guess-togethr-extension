@@ -2,21 +2,20 @@ import {
   Middleware,
   createAction,
   AnyAction,
-  createAsyncThunk,
   CombinedState,
   StateFromReducersMapObject,
   Draft,
 } from "@reduxjs/toolkit";
 import { RootState } from ".";
 import localState, { leaveLobby, createLobby } from "./localState";
-import sharedState from "./sharedState";
+import serverState from "./serverState";
 import { LobbyServer, LobbyClient } from "../lobbyManager";
 import { User } from "../../protocol/schema";
 import reduceReducers from "reduce-reducers";
 import { shallowEqual } from "react-redux";
-import { userCacheSelectors, queryUsers } from "./geoguessrState";
 import { trackPatches, immerAwareCombineReducers } from "../../utils";
 import { selectConnectionState, ConnectionState } from "./lobbySelectors";
+import { clientStates, localClientState } from "./clientState";
 
 // This middleware performs two functions:
 //
@@ -55,16 +54,17 @@ const lobbyMiddleware: Middleware<{}, RootState> = (store) => {
   };
 };
 
-const addJoinRequest = createAsyncThunk<User, User, { state: RootState }>(
-  "lobby/addJoinRequest",
-  async (user: User, { dispatch, getState }) => {
-    if (!userCacheSelectors.selectById(getState(), user.ggId)) {
-      await dispatch(queryUsers([user.ggId]));
-    }
+// const addJoinRequest = createAsyncThunk<User, User, { state: RootState }>(
+//   "lobby/addJoinRequest",
+//   async (user: User, { dispatch, getState }) => {
+//     if (!userCacheSelectors.selectById(getState(), user.ggId)) {
+//       await dispatch(queryUsers([user.ggId]));
+//     }
 
-    return user;
-  }
-);
+//     return user;
+//   }
+// );
+const addJoinRequest = createAction<User>("lobby/addJoinRequest");
 const approveJoinRequest = createAction<User>("lobby/approveJoinRequest");
 const denyJoinRequest = createAction<User>("lobby/denyJoinRequest");
 
@@ -74,7 +74,7 @@ function findConflictingUser(list: User[], user: User) {
   );
 }
 
-const reducerMap = { localState, sharedState };
+const reducerMap = { localState, serverState, clientStates, localClientState };
 
 const combinedReducer = immerAwareCombineReducers(reducerMap);
 
@@ -82,18 +82,18 @@ const crossReducer = (
   draft: Draft<CombinedState<StateFromReducersMapObject<typeof reducerMap>>>,
   action: AnyAction
 ) => {
-  if (!draft || !draft.localState || !draft.sharedState) {
+  if (!draft || !draft.localState || !draft.serverState) {
     return draft;
   }
   switch (action.type) {
-    case addJoinRequest.fulfilled.toString(): {
+    case addJoinRequest.toString(): {
       if (
         !findConflictingUser(draft.localState.joinRequests, action.payload) &&
-        !findConflictingUser(draft.sharedState.users, action.payload)
+        !findConflictingUser(draft.serverState.users, action.payload)
       ) {
         // temporarily allow all join requests
         // draft.localState.joinRequests.push(action.payload);
-        draft.sharedState.users.push(action.payload);
+        draft.serverState.users.push(action.payload);
       }
       break;
     }
@@ -104,30 +104,19 @@ const crossReducer = (
       );
 
       approveJoinRequest.match(action) &&
-        draft.sharedState.users.push(action.payload);
+        draft.serverState.users.push(action.payload);
 
       break;
     }
   }
 };
 
-const [
-  lobbyReducer,
-  localTrackSharedStatePatches,
-] = trackPatches(
+const [lobbyReducer, trackSharedStatePatches] = trackPatches(
   reduceReducers(
     combinedReducer as any,
     crossReducer as any
-  ) as typeof combinedReducer,
-  ["sharedState"]
+  ) as typeof combinedReducer
 );
-
-export const trackSharedStatePatches: typeof localTrackSharedStatePatches = (
-  listener
-) =>
-  localTrackSharedStatePatches((patches) =>
-    listener(patches.map((p) => ({ ...p, path: p.path.slice(1) })))
-  );
 
 export {
   createLobby,
@@ -135,7 +124,9 @@ export {
   addJoinRequest,
   approveJoinRequest,
   denyJoinRequest,
+  trackSharedStatePatches,
 };
 export default lobbyReducer;
-export * from './localState'
-export * from './sharedState'
+export * from "./localState";
+export * from "./serverState";
+export * from "./clientState";

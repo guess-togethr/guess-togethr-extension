@@ -10,7 +10,7 @@ const schemaLoader: loader.Loader = function () {
     required: true,
     validationKeywords: ["if", "then", "else"],
     defaultNumberType: "integer",
-    noExtraProps: true,
+    // noExtraProps: true,
   };
   const options = {
     noEmit: true,

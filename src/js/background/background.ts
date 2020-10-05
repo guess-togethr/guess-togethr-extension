@@ -63,15 +63,10 @@ browser.webRequest.onBeforeRequest.addListener(
     if (
       (details.originUrl || (details as any).initiator)?.match(
         /^https:\/\/www\.geoguessr\.com/
-      )
+      ) &&
+      new URL(details.url).searchParams.get("callback") !== "ggIntercept"
     ) {
-      const url = new URL(details.url);
-      if (url.searchParams.get("callback") !== "ggIntercept") {
-        // url.searchParams.set("callback", "ggIntercept");
-        // return { redirectUrl: url.href };
-        return { cancel: true };
-      }
-      // return {cancel: true}
+      return { cancel: true };
     }
   },
   {

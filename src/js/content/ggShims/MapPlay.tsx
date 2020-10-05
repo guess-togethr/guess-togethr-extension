@@ -1,4 +1,4 @@
-import { makeStyles } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core/styles";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppDispatch, useAppSelector } from "../storeHooks";
@@ -149,7 +149,6 @@ const MapPlayShimComponent = () => {
 
       let performSelection: (() => void) | null = null;
 
-      // class attribute modification happens asynchronously
       const mo = new MutationObserver((changes) => {
         const oldButton = gameSettings.querySelector(Selectors.GameButton);
         if (

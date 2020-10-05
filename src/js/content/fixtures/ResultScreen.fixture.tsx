@@ -13,7 +13,10 @@ export default (
         id: faker.random.alphaNumeric(5),
         name: faker.name.firstName(),
       }}
-      users={[]}
+      users={Array.from({ length: 2 }, () => ({
+        id: faker.random.alphaNumeric(5),
+        name: faker.name.firstName(),
+      }))}
       onReady={() => {}}
     />
   </HtmlDecorator>

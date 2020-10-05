@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import {
   Container,
   Paper,
@@ -22,9 +22,27 @@ import { XOR } from "../../utils";
 import clsx from "clsx";
 
 const useStyles = makeStyles({
-  paper: { padding: 8 },
+  paperWrapper: {
+    height: "100%",
+    padding: 16,
+  },
+  paper: {
+    padding: 8,
+    position: "relative",
+    width: 400,
+    maxHeight: "100%",
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  },
   titleDiv: {
     margin: "8px 0",
+    flex: "0 0",
+  },
+  scoreDiv: {
+    marginBottom: 8,
+    backgroundColor: "#fff3cc",
+    padding: "8px 8px 16px 8px",
   },
   infoDiv: {
     width: "100%",
@@ -54,6 +72,14 @@ const useStyles = makeStyles({
   },
   readyButton: {
     margin: "0 16px 0 8px",
+  },
+  list: {
+    flex: "0",
+    overflowY: "scroll",
+    scrollbarWidth: "none",
+    "&::-webkit-scrollbar": {
+      display: "none",
+    },
   },
   listSubheader: {
     textAlign: "end",
@@ -100,6 +126,7 @@ export type ReadyScreenProps = {
   ownerName: string;
   currentUser: User;
   users: User[];
+  score?: HTMLElement;
 } & XOR<{ onReady: () => void }, { onStart: () => void }> &
   Omit<ContainerProps, "children">;
 
@@ -110,6 +137,7 @@ const ReadyScreen: React.FunctionComponent<ReadyScreenProps> = (props) => {
     currentRound,
     users,
     currentUser,
+    score,
     onReady,
     onStart,
     ...rest
@@ -118,6 +146,13 @@ const ReadyScreen: React.FunctionComponent<ReadyScreenProps> = (props) => {
 
   const usersReady = users.concat(currentUser).filter((u) => u.ready).length;
   const hasCurrentRound = Boolean(currentRound);
+
+  const scoreDivRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (score) {
+      scoreDivRef.current?.appendChild(score);
+    }
+  }, [score]);
 
   const readyButton = useMemo(
     () =>
@@ -136,16 +171,17 @@ const ReadyScreen: React.FunctionComponent<ReadyScreenProps> = (props) => {
 
   return (
     <ThemeProvider type="light">
-      <Container maxWidth="sm" {...rest}>
-        <div className={classes.titleDiv}>
-          <Typography variant="h1" align="center" noWrap>
-            {lobbyName}
-          </Typography>
-          <Typography variant="subtitle2" align="center">
-            Owned by <b>{ownerName}</b>
-          </Typography>
-        </div>
+      <div className={classes.paperWrapper}>
         <Paper square className={classes.paper}>
+          <div className={classes.titleDiv}>
+            <Typography variant="h1" align="center" noWrap>
+              {lobbyName}
+            </Typography>
+            <Typography variant="subtitle2" align="center" noWrap>
+              Owned by <b>{ownerName}</b>
+            </Typography>
+          </div>
+          <div className={clsx(score && classes.scoreDiv)} ref={scoreDivRef} />
           {currentRound && (
             <>
               <div className={classes.infoDiv}>
@@ -183,6 +219,7 @@ const ReadyScreen: React.FunctionComponent<ReadyScreenProps> = (props) => {
             </>
           )}
           <List
+            className={classes.list}
             subheader={
               <ListSubheader
                 component="div"
@@ -210,7 +247,7 @@ const ReadyScreen: React.FunctionComponent<ReadyScreenProps> = (props) => {
             ))}
           </List>
         </Paper>
-      </Container>
+      </div>
     </ThemeProvider>
   );
 };

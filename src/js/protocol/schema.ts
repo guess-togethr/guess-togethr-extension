@@ -16,7 +16,7 @@ interface Challenge {
   id: string;
 
   /**
-   * @minimum 0
+   * @minimum 1
    * @maximum 5
    */
   round: number;
@@ -24,9 +24,14 @@ interface Challenge {
   timeLimit?: number;
 
   roundStartTime?: number;
+
+  participants: { id: string; gameId: string }[];
 }
 
-export interface SharedState {
+/**
+ * @validate
+ */
+export interface ServerState {
   name: string;
 
   currentChallenge?: Challenge;
@@ -39,9 +44,14 @@ export interface SharedState {
   users: User[];
 }
 
-export interface UserState {
-  ready: {
+/**
+ * @validate
+ */
+export interface ClientState {
+  id: string;
+  ready?: {
     challengeId: string;
+    gameId: string;
     /**
      * @minimum 1
      * @maximum 5
@@ -71,11 +81,11 @@ export interface UserState {
  */
 export type ServerMessage =
   | {
-      type: "set-state";
-      payload: SharedState;
+      type: "set-server-state";
+      payload: ServerState;
     }
   | {
-      type: "state-patch";
+      type: "server-state-patch";
 
       /**
        * @minItems 1
@@ -88,9 +98,9 @@ export type ServerMessage =
  */
 export type ClientMessage =
   | { type: "join"; payload: User }
-  | { type: "set-user-state"; payload: UserState }
+  | { type: "set-client-state"; payload: ClientState }
   | {
-      type: "user-state-patch";
+      type: "client-state-patch";
       /**
        * @minItems 1
        */

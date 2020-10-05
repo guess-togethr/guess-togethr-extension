@@ -1,7 +1,8 @@
 import React from "react";
 import { CSSProperties } from "react";
-import { ListItem, Avatar, Typography, makeStyles } from "@material-ui/core";
+import { ListItem, Avatar, Typography } from "@material-ui/core";
 import { AvatarGroup } from "@material-ui/lab";
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles({
   listItem: {

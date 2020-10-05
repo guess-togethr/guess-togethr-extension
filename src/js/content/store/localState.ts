@@ -76,6 +76,9 @@ const localState = createSlice({
         );
       }
     },
+    errorLobby: (state, action: PayloadAction<string>) => {
+      state && (state.error = action.payload);
+    },
     leaveLobby: () => null,
   },
   extraReducers: (builder) =>
@@ -89,6 +92,7 @@ export const {
   userConnected,
   userDisconnected,
   leaveLobby,
+  errorLobby,
 } = localState.actions;
 
 export default localState.reducer;

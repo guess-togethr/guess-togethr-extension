@@ -5,13 +5,8 @@ import StoreProvider from "./containers/StoreProvider";
 import ThemeProvider from "./containers/ThemeProvider";
 import ToolbarMonitor from "./ggShims/ToolbarMonitor";
 import { selectUser } from "./store";
-import { browser } from "webextension-polyfill-ts";
 import MapProxyProvider from "./containers/MapProxyProvider";
 import { useAppSelector, useUrlMonitor, useUserMonitor } from "./storeHooks";
-
-const script = document.createElement("script");
-script.src = browser.runtime.getURL("interceptor.bundle.js");
-document.head.appendChild(script);
 
 const App: React.FunctionComponent = () => {
   const user = useAppSelector(selectUser);

@@ -20,15 +20,8 @@ function releaseMaybeProxy(f?: MaybeRemote<any>) {
   f && f[releaseProxy] && f[releaseProxy]();
 }
 
-type OnPeerMessageHandler = (data: any, peer: string) => void;
-type OnPeerJoinHandler = (peer: string) => void;
-type OnPeerLeaveHandler = (peer: string) => void;
-
 export type NetworkFeedOpts = {
   identity?: { publicKey: string; privateKey: string };
-  // onPeerMessage?: MaybeRemote<(data: any, peer: string) => void>;
-  // onPeerJoin?: MaybeRemote<(peer: string) => void>;
-  // onPeerLeave?: MaybeRemote<(peer: string) => void>;
 } & (
   | {
       isServer: true;
@@ -48,15 +41,6 @@ export class NetworkFeed extends EventEmitter {
   private readonly hypercoreReady = new Deferred();
   private readonly extension: any;
   private readonly publicKey: Buffer;
-  // private readonly onPeerMessage: NetworkFeedOpts["onPeerMessage"];
-  // private readonly onPeerJoin: NetworkFeedOpts["onPeerJoin"];
-  // private readonly onPeerLeave: NetworkFeedOpts["onPeerLeave"];
-  // private onPeerMessage?: MaybeRemote<OnPeerMessageHandler>;
-  // private onPeerJoin?: MaybeRemote<OnPeerJoinHandler>;
-  // private onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>;
-  private readonly onLatestValueHandlers = new Set<
-    MaybeRemote<(value: { data: any; seq: number }) => void>
-  >();
   private static readonly BATCH_SIZE = 5;
   private static readonly simplePeerConfig = {
     config: {
@@ -102,9 +86,6 @@ export class NetworkFeed extends EventEmitter {
       this.lobbyId = lobbyId;
       this.isServer = opts.isServer;
       this.publicKey = Buffer.from(publicKey);
-      // this.onPeerMessage = opts.onPeerMessage;
-      // this.onPeerJoin = opts.onPeerJoin;
-      // this.onPeerLeave = opts.onPeerLeave;
 
       this.swarm = Swarm({
         bootstrap: [process.env.SIGNAL_URL],
@@ -169,11 +150,6 @@ export class NetworkFeed extends EventEmitter {
   }
 
   public async connect() {
-    // onPeerMessage?: MaybeRemote<OnPeerMessageHandler> // onPeerLeave?: MaybeRemote<OnPeerLeaveHandler>, // onPeerJoin?: MaybeRemote<OnPeerJoinHandler>,
-    // this.onPeerJoin = onPeerJoin;
-    // this.onPeerLeave = onPeerLeave;
-    // this.onPeerMessage = onPeerMessage;
-
     await this.hypercoreReady.promise;
     if (!this.swarmConnected) {
       this.swarm.join(this.publicKey);
@@ -184,15 +160,7 @@ export class NetworkFeed extends EventEmitter {
   }
 
   public disconnect() {
-    // releaseMaybeProxy(this.onPeerJoin);
-    // releaseMaybeProxy(this.onPeerLeave);
-    // releaseMaybeProxy(this.onPeerMessage);
-    // this.onPeerJoin = undefined;
-    // this.onPeerLeave = undefined;
-    // this.onPeerMessage = undefined;
     this.removeAllListeners();
-    // this.onLatestValueHandlers.forEach(releaseMaybeProxy);
-    // this.onLatestValueHandlers.clear();
   }
 
   public get peers() {
@@ -236,7 +204,6 @@ export class NetworkFeed extends EventEmitter {
     start: number = 0
   ) {
     let seq = start;
-    // this.onLatestValueHandlers.add(handler);
     this.on(`latestValue-${start}`, handler);
     this.hypercore
       .createReadStream({ live: true, start })

@@ -2,9 +2,9 @@ var webpack = require("webpack"),
   path = require("path"),
   CleanWebpackPlugin = require("clean-webpack-plugin").CleanWebpackPlugin,
   CopyWebpackPlugin = require("copy-webpack-plugin"),
-  HtmlWebpackPlugin = require("html-webpack-plugin"),
   WriteFilePlugin = require("write-file-webpack-plugin"),
   ReloadPlugin = require("./ReloadPlugin"),
+  ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin"),
   Dotenv = require("dotenv-webpack"),
   BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
     .BundleAnalyzerPlugin;
@@ -143,6 +143,12 @@ var options = {
     new Dotenv(),
     process.env.NODE_ENV === "production" &&
       new BundleAnalyzerPlugin({ generateStatsFile: true }),
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        configFile: path.resolve(__dirname, "./tsconfig.json"),
+        diagnosticOptions: { semantic: true, syntactic: true },
+      },
+    }),
   ].filter(Boolean),
 };
 

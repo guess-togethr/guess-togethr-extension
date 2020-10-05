@@ -3,7 +3,7 @@ import ScopedCssBaseline from "@material-ui/core/ScopedCssBaseline";
 import {
   ThemeProvider as MuiThemeProvider,
   createMuiTheme,
-} from "@material-ui/core";
+} from "@material-ui/core/styles";
 
 interface ThemeProviderProps {
   type: "light" | "dark";

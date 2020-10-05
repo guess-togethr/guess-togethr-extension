@@ -13,7 +13,7 @@ export enum ConnectionState {
 }
 
 export const selectMembers = (state: RootState) =>
-  state.lobby.sharedState?.users;
+  state.lobby.serverState?.users;
 export const selectOnlineUsers = (state: RootState) =>
   state.lobby.localState?.onlineUsers;
 
@@ -30,7 +30,7 @@ export const selectOnlineMembers = createSelector(
 );
 
 export const selectOwner = createSelector(
-  (state: RootState) => state.lobby.sharedState?.ownerPublicKey,
+  (state: RootState) => state.lobby.serverState?.ownerPublicKey,
   selectMembers,
   (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
 );

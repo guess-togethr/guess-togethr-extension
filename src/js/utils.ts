@@ -13,6 +13,9 @@ import {
   Middleware,
 } from "@reduxjs/toolkit";
 import { Patch, Draft, isDraft, isDraftable } from "immer";
+import debug from "./content/debug";
+import { defaultMemoize, createSelectorCreator } from "reselect";
+import deepEqual from "fast-deep-equal";
 
 type Without<T> = { [P in keyof T]?: undefined };
 export type XOR<T, U> = (Without<T> & U) | (Without<U> & T);
@@ -34,9 +37,14 @@ function arraysEqual<T = any>(
   );
 }
 
+export function filterScopedPatches(patches: Patch[], path: string[]) {
+  return patches
+    .filter((patch) => arraysEqual(patch.path.slice(0, path.length), path))
+    .map((patch) => ({ ...patch, path: patch.path.slice(path.length) }));
+}
+
 export function trackPatches<S, A extends Action<any>>(
-  reducer: Reducer<S, A> | DraftableReducer<S, A>,
-  pathFilter?: Patch["path"]
+  reducer: Reducer<S, A> | DraftableReducer<S, A>
 ): [Reducer<S, A>, (listener: PatchListener) => () => void] {
   const listeners = new Set<PatchListener>();
   const newReducer = ((state, action) =>
@@ -44,14 +52,7 @@ export function trackPatches<S, A extends Action<any>>(
       state,
       (draft) => reducer(draft as any, action),
       (patches) => {
-        const filteredPatches = pathFilter
-          ? patches.filter(
-              ({ path }) =>
-                arraysEqual(path.slice(0, pathFilter.length), pathFilter) &&
-                path.length > pathFilter.length
-            )
-          : patches;
-        filteredPatches.length && listeners.forEach((l) => l(filteredPatches));
+        patches.length && listeners.forEach((l) => l(patches));
       }
     )) as Reducer<S, A>;
 
@@ -228,13 +229,13 @@ export async function remoteStoreWrapper<S>(
   remoteStore.subscribe(
     proxy(async () => {
       latestState = (await remoteStore.getState()) as S;
-      console.log("BACKGROUND STATE", latestState);
+      debug("new background state", latestState);
       subscribers.forEach((f) => f());
     })
   );
   const createStore: () => Store<S> = () => ({
     close: () => {
-      console.log("CLOSED");
+      debug("background store closed");
       closed = true;
       subscribers.clear();
     },
@@ -344,10 +345,12 @@ type NonFunctionProperties<T> = {
   [P in keyof T]: T[P] extends Function ? never : P;
 }[keyof T];
 
+type Unpromisify<P> = P extends Promise<infer T> ? T : P;
+
 export type CachedRemote<
   T,
   CachedProps extends NonFunctionProperties<T>
-> = Omit<Remote<T>, CachedProps> & { [K in CachedProps]: T[K] };
+> = Omit<Remote<T>, CachedProps> & { [K in CachedProps]: Unpromisify<T[K]> };
 
 export async function cacheRemoteProperties<
   T,
@@ -371,3 +374,8 @@ export async function cacheRemoteProperties<
     },
   }) as unknown) as CachedRemote<T, P>;
 }
+
+export const createDeepEqualSelector = createSelectorCreator(
+  defaultMemoize,
+  deepEqual
+);

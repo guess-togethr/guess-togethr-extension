@@ -17,6 +17,8 @@ import {
   selectOnlineMembers,
   userCacheSelectors,
 } from "../store";
+import { createStructuredSelector } from "reselect";
+import { createDeepEqualSelector } from "../../utils";
 
 interface CurrentLobbyContainerProps
   extends Omit<
@@ -26,16 +28,30 @@ interface CurrentLobbyContainerProps
   claimedLobby: FullSavedLobby;
 }
 
+const claimedLobbySelector = createStructuredSelector<
+  FullSavedLobby,
+  Pick<FullSavedLobby, "id" | "identity" | "isServer">
+>(
+  {
+    id: (l) => l.id,
+    identity: (l) => l.identity,
+    isServer: (l) => l.isServer,
+  },
+  createDeepEqualSelector
+);
+
 const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
   const { claimedLobby, ...rest } = props;
 
   const appDispatch: AppDispatch = useDispatch();
   const backgroundDispatch = useBackgroundDispatch();
 
+  // Use custom deep selector that only extracts relevant lobby opts
+  const claimedLobbyOpts = claimedLobbySelector(claimedLobby);
   const connectedLobby = useAppSelector((state) => state.lobby?.localState);
   const connectedLobbyId = connectedLobby?.id;
   const connectedLobbyName = useAppSelector(
-    (state) => state.lobby?.sharedState?.name
+    (state) => state.lobby?.serverState?.name
   );
 
   const onlineMembers = useAppSelector(selectOnlineMembers);
@@ -86,8 +102,8 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
 
   // Join and leave lobby properly on mount/unmount
   useEffect(() => {
-    if (connectedLobbyId !== claimedLobby.id) {
-      appDispatch(createLobby(claimedLobby));
+    if (connectedLobbyId !== claimedLobbyOpts.id) {
+      appDispatch(createLobby(claimedLobbyOpts));
     }
 
     if (connectedLobbyId) {
@@ -95,7 +111,7 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
         appDispatch(leaveLobby());
       };
     }
-  }, [claimedLobby, connectedLobbyId, appDispatch]);
+  }, [claimedLobbyOpts, connectedLobbyId, appDispatch]);
 
   return (
     <>
