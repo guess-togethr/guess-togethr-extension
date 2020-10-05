@@ -1,11 +1,11 @@
 import React from "react";
-import ToolbarContainer from "./containers/Toolbar";
 import BackgroundEndpointProvider from "./containers/BackgroundEndpointProvider";
+import MapProxyProvider from "./containers/MapProxyProvider";
 import StoreProvider from "./containers/StoreProvider";
 import ThemeProvider from "./containers/ThemeProvider";
+import ToolbarContainer from "./containers/Toolbar";
 import ToolbarMonitor from "./ggShims/ToolbarMonitor";
 import { selectUser } from "./store";
-import MapProxyProvider from "./containers/MapProxyProvider";
 import { useAppSelector, useUrlMonitor, useUserMonitor } from "./storeHooks";
 
 const App: React.FunctionComponent = () => {

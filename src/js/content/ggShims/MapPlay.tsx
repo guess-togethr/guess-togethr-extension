@@ -239,7 +239,9 @@ const MapPlayShimComponent = () => {
 
   useEffect(() => {
     if (challengeId && timeLimit !== null) {
-      dispatch(setNewChallenge({ id: challengeId, timeLimit }));
+      dispatch(
+        setNewChallenge({ id: challengeId, timeLimit: timeLimit * 1000 })
+      );
     }
   }, [challengeId, dispatch, timeLimit]);
 

@@ -49,6 +49,7 @@ export interface ServerState {
  */
 export interface ClientState {
   id: string;
+  ggId: string;
   ready?: {
     challengeId: string;
     gameId: string;

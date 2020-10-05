@@ -27,7 +27,8 @@
     "tabs",
     "alarms",
     "https://www.geoguessr.com/*",
-    "https://maps.googleapis.com/maps/api/js?*"
+    "https://maps.googleapis.com/maps/api/js?*",
+    "https://guess-togethr.github.io/?join=*"
   ],
   "web_accessible_resources": ["interceptor.bundle.js"],
   "content_security_policy": "script-src 'self' 'unsafe-eval' http://127.0.0.1:3000/; object-src 'self'"

@@ -1,6 +1,5 @@
 import { browser, Alarms } from "webextension-polyfill-ts";
 
-// export type TimerHandle = Function & { handle: string };
 export interface TimerHandle {
   (alarm: Alarms.Alarm): void;
   alarmName: string;

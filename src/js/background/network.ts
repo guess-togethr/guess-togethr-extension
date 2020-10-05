@@ -117,19 +117,18 @@ export class NetworkFeed extends EventEmitter {
       this.hypercore.on("peer-open", (peer: any) => {
         debug("peer joined!", peer);
         peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
-        // this.onPeerJoin?.(peer.publicKeyString);
+        peer.messages = [];
         this.emit("peerJoin", peer.publicKeyString);
       });
       this.hypercore.on("peer-remove", (peer: any) => {
         debug("peer left!", peer);
-        // this.onPeerLeave?.(peer.publicKeyString);
         this.emit("peerLeave", peer.publicKeyString);
       });
       this.extension = this.hypercore.registerExtension("ggt", {
         encoding: "json",
         onmessage: (data: any, peer: any) => {
           debug("peer message", data, peer);
-          // this.onPeerMessage?.(data, peer.publicKeyString);
+          peer.messages.push(data);
           this.emit("peerMessage", data, peer.publicKeyString);
         },
       });
@@ -155,16 +154,17 @@ export class NetworkFeed extends EventEmitter {
       this.swarm.join(this.publicKey);
       this.swarmConnected = true;
     } else {
-      this.peers.forEach((p: any) => this.emit("peerJoin", p));
+      this.hypercore.peers.forEach((p: any) => {
+        this.emit("peerJoin", p.publicKeyString);
+        p.messages.forEach((m: any) =>
+          this.emit("peerMessage", m, p.publicKeyString)
+        );
+      });
     }
   }
 
   public disconnect() {
     this.removeAllListeners();
-  }
-
-  public get peers() {
-    return this.hypercore.peers.map((p: any) => p.publicKeyString);
   }
 
   public get identity(): { publicKey: string; privateKey: string } {

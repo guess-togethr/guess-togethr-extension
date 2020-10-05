@@ -1,4 +1,4 @@
-import { wrap, proxy } from "comlink";
+import { wrap } from "comlink";
 import { Deferred } from "../utils";
 
 enum MessageType {

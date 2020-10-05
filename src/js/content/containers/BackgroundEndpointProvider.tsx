@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext, createContext } from "react";
-import BackgroundEndpoint from "../../background/backgroundEndpoint";
-import { cacheRemoteProperties, CachedRemote } from "../../utils";
-import { createEndpoint } from "comlink-extension";
-import { browser } from "webextension-polyfill-ts";
 import { wrap } from "comlink";
+import { createEndpoint } from "comlink-extension";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { browser } from "webextension-polyfill-ts";
+import BackgroundEndpoint from "../../background/backgroundEndpoint";
+import { CachedRemote, cacheRemoteProperties } from "../../utils";
+import { debugStruct } from "../debug";
 
 export type RemoteBackgroundEndpoint = CachedRemote<
   BackgroundEndpoint,
@@ -29,6 +30,7 @@ const BackgroundEndpointProvider: React.FunctionComponent = ({ children }) => {
       "tabId",
       "timeDelta"
     ).then((be) => {
+      debugStruct.be = be;
       // Important to wrap in a function. Otherwise, React tries to call
       // the background endpoint as a function
       setBackgroundEndpoint(() => be);

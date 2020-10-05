@@ -21,6 +21,7 @@ interface GeoguessrState {
   currentUser: GeoguessrUser | false | null;
   userQueryCache: EntityState<GeoguessrUser | { id: string }>;
   redirect?: string;
+  timeDelta?: number;
 }
 
 const userCacheAdapter = createEntityAdapter<GeoguessrUser | { id: string }>();
@@ -59,11 +60,9 @@ export const queryUsers = createAsyncThunk<
 >(
   "geoguessr/queryUsers",
   async (ids, { getState }) => {
-    const existingIds = userCacheSelectors.selectIds(getState());
-    const filteredIds = ids.filter((id) => !existingIds.includes(id));
     return (
       await Promise.all(
-        filteredIds.map(async (id) => {
+        ids.map(async (id) => {
           const response = await fetch(`/api/v3/users/${id}`);
           if (response.ok) {
             const body = await response.json();
@@ -95,6 +94,9 @@ const geoguessrSlice = createSlice({
     },
     redirect: (state, action: PayloadAction<string>) => {
       state.redirect = action.payload;
+    },
+    setTimeDelta: (state, action: PayloadAction<number>) => {
+      state.timeDelta = action.payload;
     },
   },
   extraReducers: (builder) =>
@@ -157,5 +159,5 @@ export const selectUrl = createSelector(
 
 export const selectRedirect = (state: RootState) => state.geoguessr.redirect;
 
-export const { setUrl, redirect } = geoguessrSlice.actions;
+export const { setUrl, redirect, setTimeDelta } = geoguessrSlice.actions;
 export default geoguessrSlice.reducer;

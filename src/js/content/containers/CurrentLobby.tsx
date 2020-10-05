@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
+import { createStructuredSelector } from "reselect";
 import {
   FullSavedLobby,
   releaseSavedLobby,
   updateSavedLobby,
 } from "../../background/store";
+import { createDeepEqualSelector } from "../../utils";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import Shims from "../ggShims";
-import { useAppSelector, useBackgroundDispatch } from "../storeHooks";
 import {
   AppDispatch,
   createLobby,
@@ -17,8 +18,7 @@ import {
   selectOnlineMembers,
   userCacheSelectors,
 } from "../store";
-import { createStructuredSelector } from "reselect";
-import { createDeepEqualSelector } from "../../utils";
+import { useAppSelector, useBackgroundDispatch } from "../storeHooks";
 
 interface CurrentLobbyContainerProps
   extends Omit<

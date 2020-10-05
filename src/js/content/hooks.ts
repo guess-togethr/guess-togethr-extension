@@ -29,21 +29,24 @@ export const useDimensions = () => {
   return [ref, dimensions];
 };
 
+const defaultMoOptions = {
+  subtree: true,
+  attributes: false,
+  childList: true,
+};
+
 export const useExternalDom = <T extends Element = Element>(
   root: Element | Document | null,
   selector: string,
   oneShot: boolean = false,
-  moOptions: MutationObserverInit = {
-    subtree: true,
-    attributes: false,
-    childList: true,
-  }
+  moOptions: MutationObserverInit = defaultMoOptions
 ) => {
   const [foundNode, setFoundNode] = useState<T | null>(
     () => root?.querySelector(selector) ?? null
   );
+  const skipMo = oneShot && foundNode !== null;
   useEffect(() => {
-    if (root && (!oneShot || !foundNode)) {
+    if (root && !skipMo) {
       let mo: MutationObserver | null = new MutationObserver(() => {
         const node = root.querySelector<T>(selector);
         setFoundNode(node);
@@ -52,10 +55,10 @@ export const useExternalDom = <T extends Element = Element>(
           mo = null;
         }
       });
-      mo.observe(root, { subtree: true, attributes: true, childList: true });
+      mo.observe(root, moOptions);
       return () => mo?.disconnect();
     }
-  }, [root, selector, oneShot, foundNode]);
+  }, [root, selector, oneShot, skipMo, moOptions]);
 
   return foundNode;
 };
@@ -95,7 +98,5 @@ export const useGgGame = (challengeId: string | null) => {
 
 export function useAdjustedTime() {
   const be = useBackgroundEndpoint();
-  return useCallback(() => {
-    return new Date(Date.now() - (be?.timeDelta ?? 0));
-  }, [be]);
+  return useCallback(() => Date.now() - (be?.timeDelta ?? 0), [be]);
 }

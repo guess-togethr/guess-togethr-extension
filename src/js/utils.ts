@@ -12,7 +12,7 @@ import {
   applyMiddleware,
   Middleware,
 } from "@reduxjs/toolkit";
-import { Patch, Draft, isDraft, isDraftable } from "immer";
+import { Patch, Draft, isDraft } from "immer";
 import debug from "./content/debug";
 import { defaultMemoize, createSelectorCreator } from "reselect";
 import deepEqual from "fast-deep-equal";
@@ -64,45 +64,49 @@ export function trackPatches<S, A extends Action<any>>(
   return [newReducer, registerListener];
 }
 
-export function makeDraftableReducer<S, A extends Action>(
-  reducer: DraftableReducer<S, A>
-): Reducer<S, A> {
-  return (previousState: S | undefined, action: A) => {
-    if (isDraft(previousState)) {
-      // If it's already a draft, we must already be inside a `createNextState` call,
-      // likely because this is being wrapped in `createReducer`, `createSlice`, or nested
-      // inside an existing draft. It's safe to just pass the draft to the mutator.
-      const draft = previousState as Draft<S>; // We can assume this is already a draft
-      const result = reducer(draft, action);
+// export function makeDraftableReducer<S, A extends Action>(
+//   reducer: DraftableReducer<S, A>
+// ): Reducer<S, A> {
+//   return (previousState: S | undefined, action: A) => {
+//     if (isDraft(previousState)) {
+//       // If it's already a draft, we must already be inside a `createNextState` call,
+//       // likely because this is being wrapped in `createReducer`, `createSlice`, or nested
+//       // inside an existing draft. It's safe to just pass the draft to the mutator.
+//       const draft = previousState as Draft<S>; // We can assume this is already a draft
+//       const result = reducer(draft, action);
 
-      if (typeof result === "undefined") {
-        return previousState;
-      }
+//       if (typeof result === "undefined") {
+//         return previousState;
+//       }
 
-      return result;
-    } else if (!isDraftable(previousState)) {
-      // If state is not draftable (ex: a primitive, such as 0), we want to directly
-      // return the caseReducer func and not wrap it with produce.
-      const result = reducer(previousState as any, action);
+//       return result;
+//     } else if (!isDraftable(previousState)) {
+//       // If state is not draftable (ex: a primitive, such as 0), we want to directly
+//       // return the caseReducer func and not wrap it with produce.
+//       const result = reducer(previousState as any, action);
 
-      if (typeof result === "undefined") {
-        if (previousState === null) {
-          return previousState;
-        }
-        throw Error(
-          "A case reducer on a non-draftable value must not return undefined"
-        );
-      }
+//       if (typeof result === "undefined") {
+//         if (previousState === null) {
+//           return previousState;
+//         }
+//         throw Error(
+//           "A case reducer on a non-draftable value must not return undefined"
+//         );
+//       }
 
-      return result;
-    }
+//       return result;
+//     }
 
-    return createNextState(previousState, (draft: Draft<S>) => {
-      return reducer(draft, action);
-    }) as any;
-  };
-}
+//     return createNextState(previousState, (draft: Draft<S>) => {
+//       return reducer(draft, action);
+//     }) as any;
+//   };
+// }
 
+// This is a drop-in replacement for combineReducers that can handle an immer
+// draft passed into the resulting reducer, modifying the draft in-place.
+// Normally, combineReducers creates a new non-draft object and assigns the
+// results of the sub-reducers to it making a chimera that doesn't work.
 export function immerAwareCombineReducers<S>(
   reducers: ReducersMapObject<S, any>
 ): DraftableReducer<CombinedState<S>>;
@@ -130,6 +134,9 @@ export function immerAwareCombineReducers(map: ReducersMapObject) {
     return state;
   };
 }
+
+// TODO: use the mainline redux-toolkit when
+// https://github.com/reduxjs/redux-toolkit/pull/63 gets released (>1.4.0)
 
 export function bufferToBase64(buffer: Uint8Array) {
   var binary = "";

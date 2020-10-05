@@ -1,4 +1,4 @@
-import { ClientMessage, User, ServerMessage } from "../protocol/schema";
+import { ClientMessage, ServerMessage } from "../protocol/schema";
 import { Patch, applyPatches } from "immer";
 import { Remote, proxy, releaseProxy, ProxyMarked } from "comlink";
 import { NetworkFeed } from "../background/network";
@@ -123,18 +123,18 @@ class LobbyBase {
     peerKey: string
   ): unvalidatedData is ClientMessage {
     if (!validateClientMessage(unvalidatedData)) {
-      debug("received invalid client message", unvalidatedData);
+      debug("received invalid client message", unvalidatedData, peerKey);
       return false;
     }
 
     const clientMessage = unvalidatedData;
 
-    debug("client message received", peerKey, clientMessage);
+    debug("client message received", clientMessage, peerKey);
 
     switch (clientMessage.type) {
       case "set-client-state": {
         if (clientMessage.payload.id !== peerKey) {
-          debug.error("peer sent set-client-state message with invalid id");
+          debug("peer sent set-client-state message with invalid id");
           return false;
         }
         this.store.dispatch(setClientState(clientMessage.payload));
@@ -152,7 +152,7 @@ class LobbyBase {
           !validateClientState(newState) ||
           newState.id !== peerKey
         ) {
-          debug.error("peer sent invalid client-state-patch", currentState);
+          debug("peer sent invalid client-state-patch", currentState);
           return false;
         }
         this.store.dispatch(setClientState(newState));
@@ -193,7 +193,7 @@ export class LobbyClient extends LobbyBase {
   ) => {
     debug("on latest value", seq, data);
     if (!validateServerMessage(data)) {
-      console.error("Received invalid server message", data);
+      debug("Received invalid server message", data);
       return;
     }
     switch (data.type) {
@@ -203,7 +203,7 @@ export class LobbyClient extends LobbyBase {
         if (validateServerState(newState)) {
           this.store.dispatch(setServerState(newState));
         } else {
-          debug.error("invalid state patch", currentState, data.payload);
+          debug("invalid state patch", currentState, data.payload);
           this.store.dispatch(errorLobby("Server sent invalid state patch!"));
         }
 
@@ -268,19 +268,17 @@ export class LobbyServer extends LobbyBase {
       return false;
     }
 
-    if (data.type === "join") {
-      this.store.dispatch(addJoinRequest(data.payload as User));
-    }
-
     switch (data.type) {
       case "join":
         if (data.payload.publicKey !== peerKey) {
+          debug("Received join message with mismatched key");
           return false;
         }
 
         this.store.dispatch(addJoinRequest(data.payload));
         break;
       default:
+        debug("received unknown peer message");
         return false;
     }
 

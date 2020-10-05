@@ -14,22 +14,6 @@ import { TimerHandle, clearTimer, setTimer } from "./timer";
 
 const debug = require("debug")("background-endpoint");
 
-async function calculateTimeDelta() {
-  while (true) {
-    const start = Date.now();
-    const res = await fetch("https://worldtimeapi.org/api/timezone/Etc/UTC");
-    const end = Date.now();
-    if (res.ok) {
-      return (
-        end -
-        (Date.parse((await res.json()).utc_datetime).valueOf() +
-          (end - start) / 2)
-      );
-    }
-    await new Promise((r) => setTimeout(r, 2000));
-  }
-}
-
 export default class BackgroundEndpoint {
   public static get globalStore() {
     if (!BackgroundEndpoint._store) {
@@ -39,11 +23,10 @@ export default class BackgroundEndpoint {
   }
   private static _store: Promise<BackgroundStore>;
   public static map: Map<number, BackgroundEndpoint> = new Map();
-  private static timeDelta = calculateTimeDelta();
+  private static timeDelta = BackgroundEndpoint.calculateTimeDelta();
   public timeDelta = BackgroundEndpoint.timeDelta;
 
   private readonly urlListeners: any[] = [];
-  private destroying = false;
   private store?: TabAwareStore<BackgroundRootState, AnyAction>;
   private currentFeed?: NetworkFeed;
   private currentFeedOpts?: NetworkFeedOpts;
@@ -118,8 +101,7 @@ export default class BackgroundEndpoint {
 
   public startDestroy() {
     debug("start destroy", this.tabId);
-    if (!this.destroying) {
-      this.destroying = true;
+    if (!this.destroyTimer) {
       this.urlListeners.forEach((l) => l());
       this.urlListeners.length = 0;
       this.store?.reset();
@@ -141,4 +123,20 @@ export default class BackgroundEndpoint {
 
     browser.tabs.onRemoved.removeListener(this.onTabClose);
   };
+
+  private static async calculateTimeDelta() {
+    while (true) {
+      const start = Date.now();
+      const res = await fetch("https://worldtimeapi.org/api/timezone/Etc/UTC");
+      const end = Date.now();
+      if (res.ok) {
+        return (
+          end -
+          (Date.parse((await res.json()).utc_datetime).valueOf() +
+            (end - start) / 2)
+        );
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
 }

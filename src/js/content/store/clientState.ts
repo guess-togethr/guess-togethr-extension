@@ -27,8 +27,9 @@ const localClientState = createSlice({
   reducers: {},
   extraReducers: (builder) =>
     builder
-      .addCase(joinLobby, (state, { payload: { identity } }) => ({
+      .addCase(joinLobby, (state, { payload: { identity, user } }) => ({
         id: identity.publicKey,
+        ggId: user,
       }))
       .addCase(leaveLobby, () => null),
 });
