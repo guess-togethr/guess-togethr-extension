@@ -49,7 +49,7 @@ const ToolbarContainer = () => {
     (lobby) =>
       isErroredLobby(lobby) ||
       !lobby.user ||
-      (currentUser && lobby.user === currentUser.id)
+      (currentUser && lobby.user === currentUser?.id)
   );
   const [editMode, setEditMode] = useState(false);
 
@@ -122,8 +122,9 @@ const ToolbarContainer = () => {
               key="savedlobby-header"
               onEditClick={() => setEditMode((e) => !e)}
             />,
-            ...savedLobbies.map((l) =>
-              isFullLobby(l) ? (
+            ...savedLobbies
+              .filter(isFullLobby)
+              .map((l) => (
                 <SavedLobbyComponent
                   onDelete={editMode ? onDelete : undefined}
                   onClick={(id) => backgroundDispatch(claimSavedLobby(id))}
@@ -131,12 +132,21 @@ const ToolbarContainer = () => {
                   name={l.name}
                   id={l.id}
                 />
-              ) : null
-            ),
+              )),
           ]
         : null,
     [savedLobbies, onDelete, editMode, backgroundDispatch]
   );
+
+  const currentLobbyElement =
+    currentUser && claimedLobby && isFullLobby(claimedLobby) ? (
+      <CurrentLobbyContainer
+        rootRef={dropdownRef}
+        claimedLobby={claimedLobby}
+        expanded={open}
+        onHeaderClick={() => setOpen((isOpen) => !isOpen)}
+      />
+    ) : null;
 
   return (
     <Dropdown
@@ -145,14 +155,7 @@ const ToolbarContainer = () => {
       onClose={() => setOpen(false)}
       collapsedHeight={44}
     >
-      {currentUser && claimedLobby && isFullLobby(claimedLobby) ? (
-        <CurrentLobbyContainer
-          rootRef={dropdownRef}
-          claimedLobby={claimedLobby}
-          expanded={open}
-          onHeaderClick={() => setOpen((isOpen) => !isOpen)}
-        />
-      ) : (
+      {currentLobbyElement || (
         <ToolbarHeader
           key="header"
           primary="GuessTogethr"

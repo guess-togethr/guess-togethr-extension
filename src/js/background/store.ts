@@ -34,9 +34,12 @@ export interface FullSavedLobby {
   name?: string;
   tabId?: number;
 }
-export type SavedLobby =
-  | FullSavedLobby
-  | { id: string; error: string; tabId: number };
+interface ErroredLobby {
+  id: string;
+  error: string;
+  tabId: number;
+}
+export type SavedLobby = FullSavedLobby | ErroredLobby;
 
 export function isFullLobby(lobby: SavedLobby): lobby is FullSavedLobby {
   return "identity" in lobby;
@@ -54,28 +57,42 @@ const savedLobbies = createSlice({
   reducers: {
     saveLobby: savedLobbyAdapter.addOne,
     removeSavedLobby: savedLobbyAdapter.removeOne,
-    setMostRecentSavedLobby: (state, action: PayloadAction<string>) => {
-      const all = savedLobbyLocalSelector.selectIds(state);
-      const target = all.indexOf(action.payload);
-      if (target > 0) {
-        all.splice(0, 0, ...all.splice(target, 1));
-      }
-    },
+    // setMostRecentSavedLobby: (state, action: PayloadAction<string>) => {
+    //   const all = savedLobbyLocalSelector.selectIds(state);
+    //   const target = all.indexOf(action.payload);
+    //   if (target > 0) {
+    //     all.splice(0, 0, ...all.splice(target, 1));
+    //   }
+    // },
     claimSavedLobby: (state, action: PayloadAction<string>) => {
-      const existingLobby = savedLobbyLocalSelector
-        .selectAll(state)
-        .find((lobby) => lobby.tabId === (action as any).meta.tabId);
-      if (existingLobby && existingLobby.id !== action.payload) {
-        if (!isFullLobby(existingLobby)) {
-          savedLobbyAdapter.removeOne(state, existingLobby.id);
+      const allLobbies = savedLobbyLocalSelector.selectAll(state);
+      const existingClaimedLobby = allLobbies.find(
+        (lobby) => lobby.tabId === (action as any).meta.tabId
+      );
+
+      // If this tab previously claimed a lobby, either release it if it was a
+      // normal lobby or delete it if it was an errored lobby
+      if (existingClaimedLobby && existingClaimedLobby.id !== action.payload) {
+        if (!isFullLobby(existingClaimedLobby)) {
+          savedLobbyAdapter.removeOne(state, existingClaimedLobby.id);
         } else {
-          delete existingLobby.tabId;
+          delete existingClaimedLobby.tabId;
         }
       }
+
       savedLobbyAdapter.updateOne(state, {
         id: action.payload,
         changes: { tabId: (action as any).meta.tabId },
       });
+
+      // Move the lobby to the top of the list
+      const allLobbyIds = savedLobbyLocalSelector.selectIds(state);
+      const newClaimedLobbyIndex = allLobbyIds.indexOf(action.payload);
+      if (newClaimedLobbyIndex > 0) {
+        allLobbyIds.unshift(...allLobbyIds.splice(newClaimedLobbyIndex, 1));
+      } else if (newClaimedLobbyIndex < 0) {
+        debug("claiming unknown lobby", action.payload);
+      }
     },
     releaseSavedLobby: (state, action: Action) => {
       const existingLobby = savedLobbyLocalSelector
@@ -173,7 +190,7 @@ function createStore() {
 export const {
   saveLobby,
   removeSavedLobby,
-  setMostRecentSavedLobby,
+  // setMostRecentSavedLobby,
   claimSavedLobby,
   releaseSavedLobby,
   updateSavedLobby,
