@@ -1,5 +1,8 @@
 {
-  "presets": ["@babel/react", "@babel/typescript"],
+  "presets": [
+    "@babel/react",
+    ["@babel/typescript", { "onlyRemoveTypeImports": true }]
+  ],
   "plugins": [
     "react-hot-loader/babel",
     "@babel/plugin-proposal-class-properties",

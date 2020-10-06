@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   ListItem,
   ListSubheader,
@@ -16,6 +16,7 @@ interface CreateNewProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const CreateNew = React.forwardRef<HTMLDivElement, CreateNewProps>(
   ({ onCreate, isPro, ...rest }, ref) => {
+    const inputRef = useRef<HTMLInputElement | null>(null);
     const [input, setInput] = useState<string>("");
     const onChange = useCallback((event) => setInput(event.target.value), []);
     const onSubmit = () => {
@@ -25,6 +26,7 @@ const CreateNew = React.forwardRef<HTMLDivElement, CreateNewProps>(
     const onKeyPress = (event: React.KeyboardEvent) => {
       if (event.keyCode === 13) {
         onSubmit();
+        inputRef.current?.blur();
       }
     };
 
@@ -37,6 +39,7 @@ const CreateNew = React.forwardRef<HTMLDivElement, CreateNewProps>(
               fullWidth
               label="Enter Lobby Name"
               variant="filled"
+              inputRef={inputRef}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">

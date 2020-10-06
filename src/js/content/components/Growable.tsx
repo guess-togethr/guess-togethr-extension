@@ -1,7 +1,7 @@
 import { IntersectionOptions, useInView } from "react-intersection-observer";
 import { Grow } from "@material-ui/core";
 import React, { ReactElement, useState, useCallback, useEffect } from "react";
-import { TransitionProps } from "@material-ui/core/transitions";
+import type { TransitionProps } from "@material-ui/core/transitions";
 
 interface GrowableProps extends TransitionProps {
   children: ReactElement;
@@ -31,7 +31,6 @@ const Growable: React.FunctionComponent<GrowableProps> = ({
   }, [inView]);
 
   const TransitionComponent =
-    // entered && exitTransition && inView ? exitTransition : Grow;
     exitTransition && (entered || inProp === false) ? exitTransition : Grow;
 
   return (

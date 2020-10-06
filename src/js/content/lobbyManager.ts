@@ -75,7 +75,7 @@ class LobbyBase {
 
   protected async buildInitialState() {
     let patches: Patch[] = [];
-    let latest = 0;
+    let next = 0;
     for await (const { seq, data } of await this.feed.getLatestValues()) {
       if (!validateServerMessage(data)) {
         throw new Error("Invalid server message");
@@ -83,8 +83,8 @@ class LobbyBase {
 
       debug("building initial state", seq, data);
 
-      if (!latest) {
-        latest = seq;
+      if (!next) {
+        next = seq + 1;
       }
 
       switch (data.type) {
@@ -98,10 +98,10 @@ class LobbyBase {
           } else {
             throw new Error("Server state valied validation!");
           }
-          return latest;
+          return next;
       }
     }
-    return latest;
+    return next;
   }
 
   private onPeerJoin = (id: string) => {
@@ -194,8 +194,8 @@ class LobbyBase {
 export class LobbyClient extends LobbyBase {
   public async connect() {
     await super.connect();
-    const latest = await this.buildInitialState();
-    this.feed.onLatestValue(proxy(this.onLatestValue), latest + 1);
+    const next = await this.buildInitialState();
+    this.feed.onLatestValue(proxy(this.onLatestValue), next);
   }
 
   private onLatestValue: Parameters<NetworkFeed["onLatestValue"]>[0] = (
@@ -237,7 +237,9 @@ export class LobbyServer extends LobbyBase {
 
   public async connect() {
     await super.connect();
+
     const latest = await this.buildInitialState();
+
     if (!latest) {
       const state = this.store.getState();
       if (!state.geoguessr.currentUser) {

@@ -20,6 +20,7 @@ let exportLogFunc: ExportLogFunc | null = null;
 
 const originalLog = Debug.log;
 const originalEnabled = Debug.enabled;
+
 Debug.enabled = () => true;
 Debug.log = function (...args) {
   const ccount = (args[0] as string).match(/%c/g)?.length ?? 0;

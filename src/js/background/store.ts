@@ -22,6 +22,9 @@ import {
 import { localStorage as persistLocalStorage } from "redux-persist-webextension-storage";
 import { browser } from "webextension-polyfill-ts";
 import logger from "redux-logger";
+import gtDebug from "../debug";
+
+const debug = gtDebug("backgroundStore");
 
 export interface FullSavedLobby {
   id: string;
@@ -98,6 +101,8 @@ export type BackgroundRootState = ReturnType<typeof rootReducer>;
 export type BackgroundStore = ThenArg<ReturnType<typeof createStore>>;
 export type BackgroundDispatch = BackgroundStore["dispatch"];
 
+// This middleware switches browser tabs if a tab tries to claim a lobby that
+// is already claimed by another tab. Returns true if switched to another tab
 const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   next
 ) => (action) => {
@@ -108,6 +113,7 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
     );
     if (lobby && isFullLobby(lobby) && lobby.tabId !== undefined) {
       if (lobby.tabId !== (action as any).meta.tabId) {
+        debug("switching tabs", lobby);
         browser.tabs
           .get(lobby.tabId)
           .then(({ index, windowId }) =>
@@ -122,6 +128,24 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   return next(action);
 };
 
+const storeTransform = createTransform<
+  ReturnType<typeof savedLobbies["reducer"]>,
+  ReturnType<typeof savedLobbies["reducer"]>
+>(
+  (state) =>
+    createNextState(state, (draft) => {
+      savedLobbyLocalSelector
+        .selectAll(draft)
+        .forEach((e) =>
+          !isFullLobby(e)
+            ? savedLobbyAdapter.removeOne(draft, e.id)
+            : delete e.tabId
+        );
+    }),
+  (state) => state,
+  { whitelist: ["allLobbies"] }
+);
+
 function createStore() {
   const store = configureStore({
     reducer: persistReducer<BackgroundRootState>(
@@ -129,28 +153,7 @@ function createStore() {
         storage: persistLocalStorage,
         key: "ggt-lobbies",
         transforms:
-          process.env.NODE_ENV === "development"
-            ? undefined
-            : [
-                createTransform<
-                  ReturnType<typeof savedLobbies["reducer"]>,
-                  ReturnType<typeof savedLobbies["reducer"]>
-                >(
-                  (state) =>
-                    createNextState(state, (draft) => {
-                      console.log("WHAAAAT", draft);
-                      savedLobbyLocalSelector
-                        .selectAll(draft)
-                        .forEach((e) =>
-                          !isFullLobby(e)
-                            ? savedLobbyAdapter.removeOne(draft, e.id)
-                            : delete e.tabId
-                        );
-                    }),
-                  (state) => state,
-                  { whitelist: ["allLobbies"] }
-                ),
-              ],
+          process.env.NODE_ENV === "development" ? undefined : [storeTransform],
       },
       rootReducer
     ),
@@ -161,6 +164,7 @@ function createStore() {
         },
       }).concat(logger, lobbyMiddleware),
   });
+
   return new Promise<typeof store>((resolve) =>
     persistStore(store, null, () => resolve(store))
   );

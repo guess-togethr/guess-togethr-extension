@@ -92,7 +92,6 @@ export default class BackgroundEndpoint {
   }
 
   private onTabClose = (tabId?: number) => {
-    debugger;
     if (tabId === this.tabId) {
       this.startDestroy();
       this.finishDestroy();
