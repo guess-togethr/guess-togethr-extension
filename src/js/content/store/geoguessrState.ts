@@ -8,6 +8,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { RootState, leaveLobby } from ".";
+import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 
 interface GeoguessrUser {
   id: string;
@@ -21,7 +22,7 @@ interface GeoguessrState {
   currentUser: GeoguessrUser | false | null;
   userQueryCache: EntityState<GeoguessrUser | { id: string }>;
   redirect?: string;
-  timeDelta?: number;
+  timeDelta: number;
 }
 
 const userCacheAdapter = createEntityAdapter<GeoguessrUser | { id: string }>();
@@ -81,12 +82,19 @@ export const queryUsers = createAsyncThunk<
   // }
 );
 
+export const setTimeDelta = createAsyncThunk<
+  number,
+  void,
+  { extra: RemoteBackgroundEndpoint }
+>("geoguessr/setTimeDelta", (_, { extra }) => extra.timeDelta);
+
 const geoguessrSlice = createSlice({
   name: "geoguessr",
   initialState: {
     url: window.location.href,
     currentUser: null,
     userQueryCache: userCacheAdapter.getInitialState(),
+    timeDelta: 0,
   } as GeoguessrState,
   reducers: {
     setUrl: (state, action: PayloadAction<string>) => {
@@ -94,9 +102,6 @@ const geoguessrSlice = createSlice({
     },
     redirect: (state, action: PayloadAction<string>) => {
       state.redirect = action.payload;
-    },
-    setTimeDelta: (state, action: PayloadAction<number>) => {
-      state.timeDelta = action.payload;
     },
   },
   extraReducers: (builder) =>
@@ -114,9 +119,16 @@ const geoguessrSlice = createSlice({
       })
       .addCase(queryUsers.fulfilled, (state, action) => {
         userCacheAdapter.upsertMany(state.userQueryCache, action.payload);
+      })
+      .addCase(setTimeDelta.fulfilled, (state, action) => {
+        state.timeDelta = action.payload;
       }),
 });
 
+// This middleware performs the imperative redirect when it sees a redirect
+// action and prevents other actions from reaching reducers until the redirect
+// is complete (and the entire content script reloads). It also synchronizes
+// the Geoguessr user cache with any user IDs in the state.
 export const geoguessrMiddleware: Middleware<{}, RootState> = (store) => (
   next
 ) => (action) => {
@@ -159,5 +171,5 @@ export const selectUrl = createSelector(
 
 export const selectRedirect = (state: RootState) => state.geoguessr.redirect;
 
-export const { setUrl, redirect, setTimeDelta } = geoguessrSlice.actions;
+export const { setUrl, redirect } = geoguessrSlice.actions;
 export default geoguessrSlice.reducer;

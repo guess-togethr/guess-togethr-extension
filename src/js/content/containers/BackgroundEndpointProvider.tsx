@@ -4,11 +4,11 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { browser } from "webextension-polyfill-ts";
 import BackgroundEndpoint from "../../background/backgroundEndpoint";
 import { CachedRemote, cacheRemoteProperties } from "../../utils";
-import { debugStruct } from "../debug";
+import { debugStruct } from "../../debug";
 
 export type RemoteBackgroundEndpoint = CachedRemote<
   BackgroundEndpoint,
-  "tabId" | "timeDelta"
+  "tabId"
 >;
 
 const BackgroundEndpointContext = createContext<RemoteBackgroundEndpoint | null>(
@@ -27,8 +27,7 @@ const BackgroundEndpointProvider: React.FunctionComponent = ({ children }) => {
   useEffect(() => {
     cacheRemoteProperties(
       wrap<BackgroundEndpoint>(createEndpoint(browser.runtime.connect())),
-      "tabId",
-      "timeDelta"
+      "tabId"
     ).then((be) => {
       debugStruct.be = be;
       // Important to wrap in a function. Otherwise, React tries to call

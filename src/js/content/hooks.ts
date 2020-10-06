@@ -1,14 +1,7 @@
-import {
-  useRef,
-  useLayoutEffect,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import { useRef, useLayoutEffect, useState, useEffect } from "react";
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import { validateGeoguessrGame } from "!schema-loader!./ggApiSchema.ts";
 import { GeoguessrGame } from "./ggApiSchema";
-import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 
 export const useDimensions = () => {
   const ref = useRef<Element>();
@@ -95,8 +88,3 @@ export const useGgGame = (challengeId: string | null) => {
 
   return game;
 };
-
-export function useAdjustedTime() {
-  const be = useBackgroundEndpoint();
-  return useCallback(() => Date.now() - (be?.timeDelta ?? 0), [be]);
-}

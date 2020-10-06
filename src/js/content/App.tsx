@@ -6,13 +6,19 @@ import ThemeProvider from "./containers/ThemeProvider";
 import ToolbarContainer from "./containers/Toolbar";
 import ToolbarMonitor from "./ggShims/ToolbarMonitor";
 import { selectUser } from "./store";
-import { useAppSelector, useUrlMonitor, useUserMonitor } from "./storeHooks";
+import {
+  useAppSelector,
+  useUrlMonitor,
+  useUserMonitor,
+  useTimeDelta,
+} from "./storeHooks";
 
 const App: React.FunctionComponent = () => {
   const user = useAppSelector(selectUser);
 
   useUrlMonitor();
   useUserMonitor();
+  useTimeDelta();
 
   return user !== null ? (
     <ToolbarMonitor>

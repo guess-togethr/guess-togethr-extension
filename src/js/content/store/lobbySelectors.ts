@@ -1,7 +1,9 @@
 import { RootState } from ".";
 import { createSelector } from "@reduxjs/toolkit";
 import { selectUser, userCacheSelectors } from "./geoguessrState";
-import debug from "../debug";
+import gtDebug from "../../debug";
+
+const debug = gtDebug("lobby");
 
 export enum ConnectionState {
   Disconnected,
@@ -25,28 +27,28 @@ type WaitingForReady = {
   round: number;
   startTime?: number;
 };
-type InRound = { state: ChallengeStateType.InRound; round: number };
+type InRound = {
+  state: ChallengeStateType.InRound;
+  round: number;
+  endTime: number;
+};
 
 export type ChallengeState = Idle | WaitingForReady | InRound;
 
 export const SLUSH_TIME = 3 * 1000;
 
-export const selectAdjustedTime = (state: RootState) =>
-  Date.now() - (state.geoguessr.timeDelta ?? 0);
+export function selectAdjustedTime(state: RootState) {
+  return Date.now() - state.geoguessr.timeDelta;
+}
 
-export const selectChallengeState: (state: RootState) => ChallengeState = (
-  state: RootState
-) => {
+export function selectChallengeState(state: RootState): ChallengeState {
   const currentChallenge = state.lobby.serverState?.currentChallenge;
   const roundStartTime = currentChallenge?.roundStartTime ?? 0;
   const timeLimit = currentChallenge?.timeLimit ?? 0;
   const currentTime = selectAdjustedTime(state);
   if (
     !currentChallenge ||
-    (currentChallenge.round >= 5 &&
-      selectAdjustedTime(state) >
-        (currentChallenge.roundStartTime ?? 0) +
-          (currentChallenge.timeLimit ?? 0))
+    (currentChallenge.round >= 5 && currentTime > roundStartTime + timeLimit)
   ) {
     return { state: ChallengeStateType.Idle };
   }
@@ -59,6 +61,7 @@ export const selectChallengeState: (state: RootState) => ChallengeState = (
       return {
         state: ChallengeStateType.InRound,
         round: currentChallenge.round,
+        endTime: roundStartTime + timeLimit,
       };
     }
     return {
@@ -73,7 +76,7 @@ export const selectChallengeState: (state: RootState) => ChallengeState = (
 
   debug("invalid challenge state", currentChallenge);
   return { state: ChallengeStateType.Idle };
-};
+}
 
 export const selectMembers = (state: RootState) =>
   state.lobby.serverState?.users;
@@ -88,14 +91,14 @@ export const selectOnlineMembers = createSelector(
       return [];
     }
 
-    return members.filter(({ publicKey }) => onlineUsers.includes(publicKey));
+    return members.filter(({ id }) => onlineUsers.includes(id));
   }
 );
 
 export const selectOwner = createSelector(
   (state: RootState) => state.lobby.serverState?.ownerPublicKey,
   selectMembers,
-  (owner, members) => members?.find(({ publicKey }) => publicKey === owner)
+  (owner, members) => members?.find(({ id }) => id === owner)
 );
 
 export const selectOwnerGgUser = createSelector(
@@ -123,7 +126,7 @@ export const selectConnectionState = createSelector(
       return ConnectionState.GettingInitialData;
     }
 
-    if (!onlineUsers?.includes(owner.publicKey)) {
+    if (!onlineUsers?.includes(owner.id)) {
       return ConnectionState.WaitingForHost;
     }
 

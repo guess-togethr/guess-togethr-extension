@@ -13,9 +13,11 @@ import {
   Middleware,
 } from "@reduxjs/toolkit";
 import { Patch, Draft, isDraft } from "immer";
-import debug from "./content/debug";
+import gtDebug from "./debug";
 import { defaultMemoize, createSelectorCreator } from "reselect";
 import deepEqual from "fast-deep-equal";
+
+const debug = gtDebug("utils");
 
 type Without<T> = { [P in keyof T]?: undefined };
 export type XOR<T, U> = (Without<T> & U) | (Without<U> & T);
@@ -63,45 +65,6 @@ export function trackPatches<S, A extends Action<any>>(
 
   return [newReducer, registerListener];
 }
-
-// export function makeDraftableReducer<S, A extends Action>(
-//   reducer: DraftableReducer<S, A>
-// ): Reducer<S, A> {
-//   return (previousState: S | undefined, action: A) => {
-//     if (isDraft(previousState)) {
-//       // If it's already a draft, we must already be inside a `createNextState` call,
-//       // likely because this is being wrapped in `createReducer`, `createSlice`, or nested
-//       // inside an existing draft. It's safe to just pass the draft to the mutator.
-//       const draft = previousState as Draft<S>; // We can assume this is already a draft
-//       const result = reducer(draft, action);
-
-//       if (typeof result === "undefined") {
-//         return previousState;
-//       }
-
-//       return result;
-//     } else if (!isDraftable(previousState)) {
-//       // If state is not draftable (ex: a primitive, such as 0), we want to directly
-//       // return the caseReducer func and not wrap it with produce.
-//       const result = reducer(previousState as any, action);
-
-//       if (typeof result === "undefined") {
-//         if (previousState === null) {
-//           return previousState;
-//         }
-//         throw Error(
-//           "A case reducer on a non-draftable value must not return undefined"
-//         );
-//       }
-
-//       return result;
-//     }
-
-//     return createNextState(previousState, (draft: Draft<S>) => {
-//       return reducer(draft, action);
-//     }) as any;
-//   };
-// }
 
 // This is a drop-in replacement for combineReducers that can handle an immer
 // draft passed into the resulting reducer, modifying the draft in-place.
@@ -212,19 +175,6 @@ export function crc32(buf: Uint8Array) {
   return (crc ^ -1) >>> 0;
 }
 
-// export function generateNoiseKeypair() {
-//   const pair = {
-//     publicKey: new Uint8Array(sodium.crypto_kx_PUBLICKEYBYTES),
-//     privateKey: new Uint8Array(sodium.crypto_kx_SECRETKEYBYTES),
-//   };
-
-//   sodium.crypto_kx_keypair(pair.publicKey, pair.privateKey);
-//   return {
-//     publicKey: bufferToBase64(pair.publicKey),
-//     privateKey: bufferToBase64(pair.privateKey),
-//   };
-// }
-
 export async function remoteStoreWrapper<S>(
   remoteStore: Remote<Store<S>>,
   ...middlewares: Middleware<{}, S>[]
@@ -277,7 +227,6 @@ export function makeTabAwareStore<S, A extends AnyAction>(
   const unsubscribes = new Set<ReturnType<typeof store["subscribe"]>>();
   return new Proxy<TabAwareStore<S, A>>(store as any, {
     get(target, propKey) {
-      console.log(target, propKey);
       if (propKey === "dispatch") {
         return (action: AnyAction) => {
           action.meta = Object.assign({}, action.meta, { tabId });

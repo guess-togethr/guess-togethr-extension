@@ -15,15 +15,16 @@ import {
   setServerState,
   userConnected,
   userDisconnected,
-  addJoinRequest,
   trackSharedStatePatches,
   errorLobby,
   clientStateSelectors,
   setClientState,
+  selectMembers,
 } from "./store";
 import { filterScopedPatches } from "../utils";
+import gtDebug from "../debug";
 
-const debug = require("debug")("lobby");
+const debug = gtDebug("lobbyManager");
 
 export type Identity = { publicKey: string; privateKey: string };
 
@@ -137,6 +138,13 @@ class LobbyBase {
           debug("peer sent set-client-state message with invalid id");
           return false;
         }
+        const existingUser = selectMembers(this.store.getState())?.find(
+          ({ id }) => peerKey === id
+        );
+        if (existingUser && existingUser.ggId !== clientMessage.payload.ggId) {
+          debug("member peer changed ggid", existingUser, clientMessage);
+          return false;
+        }
         this.store.dispatch(setClientState(clientMessage.payload));
         break;
       }
@@ -158,6 +166,9 @@ class LobbyBase {
         this.store.dispatch(setClientState(newState));
         break;
       }
+      default: {
+        debug("unknown client message received");
+      }
     }
 
     return true;
@@ -169,7 +180,7 @@ class LobbyBase {
 
   protected onPatches(patches: Patch[]) {
     const filteredPatches = filterScopedPatches(patches, ["localClientState"]);
-    if (filterScopedPatches.length) {
+    if (filteredPatches.length) {
       debug("sending client state patches", filteredPatches);
       const message: ClientMessage = {
         type: "client-state-patch",
@@ -213,26 +224,10 @@ export class LobbyClient extends LobbyBase {
         break;
     }
   };
-
-  public sendJoin() {
-    const state = this.store.getState();
-    if (!state.geoguessr.currentUser) {
-      throw new Error("Invalid USER??");
-    }
-    this.sendClientMessage(
-      {
-        type: "join",
-        payload: {
-          ggId: state.geoguessr.currentUser!.id,
-          publicKey: this.identity.publicKey,
-        },
-      },
-      state.lobby.serverState!.ownerPublicKey
-    );
-  }
 }
 
 export class LobbyServer extends LobbyBase {
+  private builtInitialState = false;
   public constructor(
     private readonly name: string,
     ...args: ConstructorParameters<typeof LobbyBase>
@@ -254,35 +249,14 @@ export class LobbyServer extends LobbyBase {
         users: [
           {
             ggId: state.geoguessr.currentUser.id,
-            publicKey: this.identity.publicKey,
+            id: this.identity.publicKey,
           },
         ],
       };
       this.writeToFeed({ type: "set-server-state", payload: newSharedState });
       this.store.dispatch(setServerState(newSharedState));
     }
-  }
-
-  protected onPeerMessage(data: any, peerKey: string): data is ClientMessage {
-    if (!super.onPeerMessage(data, peerKey)) {
-      return false;
-    }
-
-    switch (data.type) {
-      case "join":
-        if (data.payload.publicKey !== peerKey) {
-          debug("Received join message with mismatched key");
-          return false;
-        }
-
-        this.store.dispatch(addJoinRequest(data.payload));
-        break;
-      default:
-        debug("received unknown peer message");
-        return false;
-    }
-
-    return true;
+    this.builtInitialState = true;
   }
 
   private writeToFeed(message: ServerMessage) {
@@ -291,6 +265,9 @@ export class LobbyServer extends LobbyBase {
 
   protected onPatches(patches: Patch[]) {
     super.onPatches(patches);
+    if (!this.builtInitialState) {
+      return;
+    }
     const filteredPatches = filterScopedPatches(patches, ["serverState"]);
     if (filteredPatches.length) {
       debug("writing server patches", filteredPatches);

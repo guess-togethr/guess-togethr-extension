@@ -3,8 +3,8 @@ import React, { useEffect, useState } from "react";
 import { Provider, useStore } from "react-redux";
 import { createLogger } from "redux-logger";
 import { remoteStoreWrapper } from "../../utils";
-import { debugStruct } from "../debug";
-import { createStore, selectRedirect, setTimeDelta } from "../store";
+import { debugStruct } from "../../debug";
+import { createStore, selectRedirect } from "../store";
 import { BackgroundStoreContext } from "../storeHooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 
@@ -77,7 +77,7 @@ const StoreProvider: React.FunctionComponent = ({ children }) => {
   useEffect(() => {
     if (backgroundEndpoint) {
       const store = createStore(backgroundEndpoint);
-      store.dispatch(setTimeDelta(backgroundEndpoint.timeDelta));
+      debugStruct.store = store;
       setStore(store);
     }
   }, [backgroundEndpoint]);

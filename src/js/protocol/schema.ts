@@ -3,16 +3,22 @@ import type { Patch } from "immer";
 export interface User {
   /**
    * @minLength 1
+   * @maxLength 100
    */
-  publicKey: string;
+  id: string;
 
   /**
    * @minLength 1
+   * @maxLength 100
    */
   ggId: string;
 }
 
 interface Challenge {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   id: string;
 
   /**
@@ -25,17 +31,36 @@ interface Challenge {
 
   roundStartTime?: number;
 
-  participants: { id: string; gameId: string }[];
+  participants: {
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
+    id: string;
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
+    gameId: string;
+  }[];
 }
 
 /**
  * @validate
  */
 export interface ServerState {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   name: string;
 
   currentChallenge?: Challenge;
 
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   ownerPublicKey: string;
 
   /**
@@ -48,10 +73,26 @@ export interface ServerState {
  * @validate
  */
 export interface ClientState {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   id: string;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   ggId: string;
   ready?: {
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
     challengeId: string;
+    /**
+     * @minLength 1
+     * @maxLength 100
+     */
     gameId: string;
     /**
      * @minimum 1
@@ -98,7 +139,6 @@ export type ServerMessage =
  * @validate
  */
 export type ClientMessage =
-  | { type: "join"; payload: User }
   | { type: "set-client-state"; payload: ClientState }
   | {
       type: "client-state-patch";

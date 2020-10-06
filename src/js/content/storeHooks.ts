@@ -23,6 +23,7 @@ import {
 } from "./store";
 import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 import { proxy } from "comlink";
+import { setTimeDelta } from "./store/geoguessrState";
 
 export const BackgroundStoreContext: any = createContext(null);
 
@@ -58,7 +59,7 @@ export const useClaimedLobby = () => {
 
 export const useUserMonitor = () => {
   const url = useAppSelector(selectUrl);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(checkCurrentUser());
   }, [url, dispatch]);
@@ -66,8 +67,15 @@ export const useUserMonitor = () => {
 
 export const useUrlMonitor = () => {
   const backgroundEndpoint = useBackgroundEndpoint();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   useEffect(() => {
     backgroundEndpoint?.onUrlChange(proxy((url) => dispatch(setUrl(url))));
   }, [backgroundEndpoint, dispatch]);
+};
+
+export const useTimeDelta = () => {
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    dispatch(setTimeDelta());
+  }, [dispatch]);
 };

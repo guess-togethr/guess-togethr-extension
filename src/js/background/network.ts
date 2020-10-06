@@ -70,6 +70,7 @@ export class NetworkFeed extends EventEmitter {
 
   constructor(opts: NetworkFeedOpts) {
     super();
+    debug("creating new feed", opts);
     try {
       const { lobbyId, publicKey, privateKey } = opts.id
         ? {
@@ -99,7 +100,7 @@ export class NetworkFeed extends EventEmitter {
           db(`${opts.isServer ? "owner-" : ""}${this.lobbyId}-${name}`),
         Buffer.from(publicKey),
         {
-          createIfMissing: !opts.id,
+          createIfMissing: false,
           valueEncoding: "json",
           secretKey:
             opts.isServer && privateKey ? Buffer.from(privateKey) : undefined,
@@ -115,19 +116,19 @@ export class NetworkFeed extends EventEmitter {
         this.hypercoreReady.reject(err);
       });
       this.hypercore.on("peer-open", (peer: any) => {
-        debug("peer joined!", peer);
         peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
+        debug("peer joined!", peer.publicKeyString);
         peer.messages = [];
         this.emit("peerJoin", peer.publicKeyString);
       });
       this.hypercore.on("peer-remove", (peer: any) => {
-        debug("peer left!", peer);
+        debug("peer left!", peer.publicKeyString);
         this.emit("peerLeave", peer.publicKeyString);
       });
       this.extension = this.hypercore.registerExtension("ggt", {
         encoding: "json",
         onmessage: (data: any, peer: any) => {
-          debug("peer message", data, peer);
+          debug("peer message", data, peer.publicKeyString);
           peer.messages.push(data);
           this.emit("peerMessage", data, peer.publicKeyString);
         },

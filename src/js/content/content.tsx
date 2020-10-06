@@ -1,3 +1,4 @@
+import "../debug";
 import React from "react";
 import ReactDOM from "react-dom";
 // Must be imported before any other components
