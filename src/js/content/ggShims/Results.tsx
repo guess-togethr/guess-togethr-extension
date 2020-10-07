@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useExternalDom } from "../hooks";
 import { createPortal } from "react-dom";
 import ReadyScreen, { ReadyScreenProps } from "../components/ReadyScreen";
-import { makeStyles } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles({
   resultsDiv: {

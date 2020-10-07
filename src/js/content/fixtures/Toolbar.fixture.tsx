@@ -11,6 +11,7 @@ export default {
         return {
           id,
           name: id,
+          tab: faker.random.boolean(),
         };
       })}
       onCreate={alert}

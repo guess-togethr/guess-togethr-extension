@@ -61,7 +61,7 @@ export interface ServerState {
    * @minLength 1
    * @maxLength 100
    */
-  ownerPublicKey: string;
+  ownerId: string;
 
   /**
    * @uniqueItems true

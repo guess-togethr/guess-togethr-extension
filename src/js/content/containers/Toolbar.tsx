@@ -121,16 +121,22 @@ const ToolbarContainer = () => {
             <SavedLobbyHeader
               key="savedlobby-header"
               onEditClick={() => setEditMode((e) => !e)}
+              iconButton={editMode ? "check" : "edit"}
             />,
             ...savedLobbies
               .filter(isFullLobby)
               .map((l) => (
                 <SavedLobbyComponent
-                  onDelete={editMode ? onDelete : undefined}
-                  onClick={(id) => backgroundDispatch(claimSavedLobby(id))}
+                  onDelete={editMode && !l.tabId ? onDelete : undefined}
+                  onClick={
+                    editMode
+                      ? undefined
+                      : (id) => backgroundDispatch(claimSavedLobby(id))
+                  }
                   key={l.id}
                   name={l.name}
                   id={l.id}
+                  showTabIcon={!editMode && !!l.tabId}
                 />
               )),
           ]

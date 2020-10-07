@@ -1,25 +1,11 @@
-import React, {
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  RefObject,
-} from "react";
-import {
-  Button,
-  ListItem,
-  InputAdornment,
-  IconButton,
-  Tooltip,
-} from "@material-ui/core";
+import React, { useMemo, RefObject } from "react";
+import { Button, ListItem } from "@material-ui/core";
 import Growable from "./Growable";
 import ToolbarHeader from "./ToolbarHeader";
 import OnlineUsers, { OnlineUsersProps } from "./OnlineUsers";
-import { Assignment } from "@material-ui/icons";
-import TextField from "./TextField";
 import { ConnectionState } from "../store";
 import { makeStyles } from "@material-ui/core/styles";
+import ShareTextField from "./ShareTextField";
 
 const useStyles = makeStyles({
   outerContainer: {
@@ -77,30 +63,6 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
     }
   }, [connectionState]);
 
-  const [tooltipOpen, setTooltipOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const onClipboardClick = useCallback(() => {
-    inputRef.current?.select();
-    document.execCommand("copy");
-    setTooltipOpen(true);
-  }, []);
-
-  useEffect(() => {
-    if (tooltipOpen && expanded) {
-      let timer: any = setTimeout(() => {
-        setTooltipOpen(false);
-        timer = null;
-      }, 2000);
-      return () => {
-        if (timer) {
-          setTooltipOpen(false);
-          clearTimeout(timer);
-        }
-      };
-    }
-  }, [tooltipOpen, expanded]);
-
   return (
     <div className={classes.outerContainer}>
       <ToolbarHeader
@@ -115,28 +77,9 @@ const CurrentLobby: React.FunctionComponent<CurrentLobbyProps> = (props) => {
           </Growable>
           <ListItem>
             <Growable intersectionProps={{ root: rootRef?.current }}>
-              <TextField
-                fullWidth
-                inputRef={inputRef}
-                InputProps={{
-                  readOnly: true,
-                  onFocus: (event) => event.currentTarget.select(),
-                  onBlur: (event) => event.currentTarget.blur(),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Tooltip title="Link copied!" open={tooltipOpen}>
-                        <IconButton onClick={onClipboardClick}>
-                          <Assignment />
-                        </IconButton>
-                      </Tooltip>
-                    </InputAdornment>
-                  ),
-                  style: { paddingRight: 4 },
-                }}
-                variant="filled"
-                size="small"
-                label="Invite Link"
-                defaultValue={inviteUrl}
+              <ShareTextField
+                inviteUrl={inviteUrl}
+                disableTooltip={!expanded}
               />
             </Growable>
           </ListItem>

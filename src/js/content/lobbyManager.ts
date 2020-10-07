@@ -1,7 +1,7 @@
 import { ClientMessage, ServerMessage } from "../protocol/schema";
 import { Patch, applyPatches } from "immer";
 import { Remote, proxy, releaseProxy, ProxyMarked } from "comlink";
-import { NetworkFeed } from "../background/network";
+import type { NetworkFeed } from "../background/network";
 import { MiddlewareAPI } from "@reduxjs/toolkit";
 import {
   validateClientMessage,
@@ -9,7 +9,7 @@ import {
   validateServerState,
   validateClientState,
 } from "../protocol";
-import { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
+import type { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 import {
   BreakCycleRootState,
   setServerState,
@@ -78,6 +78,7 @@ class LobbyBase {
     let next = 0;
     for await (const { seq, data } of await this.feed.getLatestValues()) {
       if (!validateServerMessage(data)) {
+        debug("invalid server message", seq, data);
         throw new Error("Invalid server message");
       }
 
@@ -247,7 +248,7 @@ export class LobbyServer extends LobbyBase {
       }
       const newSharedState = {
         name: this.name,
-        ownerPublicKey: this.identity.publicKey,
+        ownerId: this.identity.publicKey,
         users: [
           {
             ggId: state.geoguessr.currentUser.id,

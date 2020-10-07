@@ -1,7 +1,7 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import lobby, { lobbyMiddleware } from "./lobbyState";
 import geoguessr, { geoguessrMiddleware } from "./geoguessrState";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import devToolsEnhancer from "remote-redux-devtools";
 import { createLogger } from "redux-logger";
 import gtDebug from "../../debug";

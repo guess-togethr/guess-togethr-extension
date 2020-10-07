@@ -8,7 +8,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { RootState, leaveLobby } from ".";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 
 interface GeoguessrUser {
   id: string;

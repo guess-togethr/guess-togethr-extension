@@ -19,7 +19,8 @@ let exportLogFunc: ExportLogFunc | null = null;
 // around so the original functionality of enabling via localStorage still works
 
 const originalLog = Debug.log;
-const originalEnabled = Debug.enabled;
+const originalEnabled =
+  process.env.NODE_ENV === "development" ? () => true : Debug.enabled;
 
 Debug.enabled = () => true;
 Debug.log = function (...args) {

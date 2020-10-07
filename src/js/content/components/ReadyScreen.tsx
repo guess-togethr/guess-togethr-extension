@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import {
-  Container,
   Paper,
   List,
   ListItem,
@@ -10,12 +9,12 @@ import {
   ListItemSecondaryAction,
   Divider,
   Typography,
-  makeStyles,
   Button,
   ListSubheader,
   ListItemProps,
   ContainerProps,
 } from "@material-ui/core";
+import { makeStyles } from "@material-ui/core/styles";
 import ThemeProvider from "../containers/ThemeProvider";
 import Checkmark from "./Checkmark";
 import { XOR } from "../../utils";

@@ -96,7 +96,7 @@ export const selectOnlineMembers = createSelector(
 );
 
 export const selectOwner = createSelector(
-  (state: RootState) => state.lobby.serverState?.ownerPublicKey,
+  (state: RootState) => state.lobby.serverState?.ownerId,
   selectMembers,
   (owner, members) => members?.find(({ id }) => id === owner)
 );

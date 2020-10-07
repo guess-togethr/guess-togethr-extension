@@ -1,8 +1,8 @@
 import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts, Identity } from "../lobbyManager";
-import { FullSavedLobby } from "../../background/store";
-import { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import type { FullSavedLobby } from "../../background/store";
+import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import { RootState } from ".";
 import { selectUser } from "./geoguessrState";
 

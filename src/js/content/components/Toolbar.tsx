@@ -20,7 +20,7 @@ interface ToolbarProps {
     inviteUrl: string;
     onlineUsers: { id: string; name: string }[];
   };
-  lobbies: { id: string; name?: string }[];
+  lobbies: { id: string; name?: string; tab?: boolean }[];
   onCreate?: () => void;
   startOpen?: boolean;
   user?: boolean;
@@ -86,6 +86,7 @@ const Toolbar = ({
               <SavedLobbyHeader
                 key="savedlobby-header"
                 onEditClick={() => setEditMode((e) => !e)}
+                iconButton={editMode ? "check" : "edit"}
               />,
             ].concat(
               lobbyState.map((lobby) => (
@@ -93,8 +94,9 @@ const Toolbar = ({
                   key={lobby.id}
                   id={lobby.id}
                   name={lobby.name}
-                  onClick={alert}
-                  onDelete={editMode ? onDelete : undefined}
+                  onClick={editMode ? undefined : alert}
+                  onDelete={editMode && !lobby.tab ? onDelete : undefined}
+                  showTabIcon={lobby.tab && !editMode}
                 />
               ))
             )

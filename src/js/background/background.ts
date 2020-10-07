@@ -71,10 +71,8 @@ browser.webRequest.onBeforeRequest.addListener(
       ]).then(([store]) => {
         if (!savedLobbySelector.selectById(store.getState(), id)) {
           try {
-            const feed = new NetworkFeed({ isServer: false, id });
-            store.dispatch(
-              saveLobby({ id, identity: feed.identity, isServer: false })
-            );
+            const { identity } = new NetworkFeed({ isServer: false, id });
+            store.dispatch(saveLobby({ id, identity, isServer: false }));
           } catch (e) {
             store.dispatch(saveLobby({ id, error: e.message, tabId }));
           }
