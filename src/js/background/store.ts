@@ -23,30 +23,43 @@ import { localStorage as persistLocalStorage } from "redux-persist-webextension-
 import { browser } from "webextension-polyfill-ts";
 import logger from "redux-logger";
 import gtDebug from "../debug";
+import type { Identity } from "../content/lobbyManager";
+import { XOR } from "../utils";
 
 const debug = gtDebug("backgroundStore");
 
-export interface FullSavedLobby {
-  id: string;
-  identity: { publicKey: string; privateKey: string };
-  isServer: boolean;
-  user?: string;
-  name?: string;
-  tabId?: number;
-}
-interface ErroredLobby {
+// export interface FullSavedLobby {
+//   id: string;
+//   // identity: { publicKey: string; privateKey: string };
+//   isServer: boolean;
+//   user?: string;
+//   name?: string;
+//   tabId?: number;
+// }
+export type FullSavedLobby = { id: string; tabId?: number } & XOR<
+  { isServer: true; user: string; name: string },
+  { isServer: false; user?: string; name?: string }
+>;
+export interface ErroredLobby {
   id: string;
   error: string;
   tabId: number;
 }
-export type SavedLobby = FullSavedLobby | ErroredLobby;
+export type SavedLobby = XOR<FullSavedLobby, ErroredLobby>;
 
-export function isFullLobby(lobby: SavedLobby): lobby is FullSavedLobby {
-  return "identity" in lobby;
+interface IdentityEntity extends Identity {
+  id: string;
+}
+
+export function isFullLobby(lobby?: SavedLobby): lobby is FullSavedLobby {
+  return !!lobby && "isServer" in lobby;
+}
+export function isErroredLobby(lobby?: SavedLobby): lobby is ErroredLobby {
+  return !!lobby && "error" in lobby;
 }
 
 const savedLobbyAdapter = createEntityAdapter<SavedLobby>();
-const savedLobbySelector = savedLobbyAdapter.getSelectors<BackgroundRootState>(
+const savedLobbySelectors = savedLobbyAdapter.getSelectors<BackgroundRootState>(
   (state) => state.allLobbies
 );
 const savedLobbyLocalSelector = savedLobbyAdapter.getSelectors();
@@ -57,13 +70,6 @@ const savedLobbies = createSlice({
   reducers: {
     saveLobby: savedLobbyAdapter.addOne,
     removeSavedLobby: savedLobbyAdapter.removeOne,
-    // setMostRecentSavedLobby: (state, action: PayloadAction<string>) => {
-    //   const all = savedLobbyLocalSelector.selectIds(state);
-    //   const target = all.indexOf(action.payload);
-    //   if (target > 0) {
-    //     all.splice(0, 0, ...all.splice(target, 1));
-    //   }
-    // },
     claimSavedLobby: (state, action: PayloadAction<string>) => {
       const allLobbies = savedLobbyLocalSelector.selectAll(state);
       const existingClaimedLobby = allLobbies.find(
@@ -110,7 +116,31 @@ const savedLobbies = createSlice({
   },
 });
 
-const rootReducer = combineReducers({ allLobbies: savedLobbies.reducer });
+const identityAdapter = createEntityAdapter<IdentityEntity>();
+
+const unsafeIdentitySelectors = identityAdapter.getSelectors(
+  (state: BackgroundRootState) => state.identities
+);
+const identitySelectors = createEntityAdapter<
+  Omit<IdentityEntity, "privateKey">
+>().getSelectors((state: BackgroundRootState) =>
+  createNextState(state.identities, (draft) => {
+    Object.values(draft.entities).forEach((v) => delete (v as any)?.privateKey);
+  })
+);
+
+const identities = createSlice({
+  name: "identities",
+  initialState: identityAdapter.getInitialState(),
+  reducers: {
+    addIdentity: identityAdapter.addOne,
+  },
+});
+
+const rootReducer = combineReducers({
+  allLobbies: savedLobbies.reducer,
+  identities: identities.reducer,
+});
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 
@@ -124,7 +154,7 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   next
 ) => (action) => {
   if (savedLobbies.actions.claimSavedLobby.match(action)) {
-    const lobby = savedLobbySelector.selectById(
+    const lobby = savedLobbySelectors.selectById(
       store.getState(),
       action.payload
     );
@@ -145,6 +175,7 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   return next(action);
 };
 
+// Prevent saving errored lobbies in production mode
 const storeTransform = createTransform<
   ReturnType<typeof savedLobbies["reducer"]>,
   ReturnType<typeof savedLobbies["reducer"]>
@@ -195,4 +226,10 @@ export const {
   releaseSavedLobby,
   updateSavedLobby,
 } = savedLobbies.actions;
-export { savedLobbySelector, createStore };
+export const { addIdentity } = identities.actions;
+export {
+  savedLobbySelectors,
+  identitySelectors,
+  unsafeIdentitySelectors,
+  createStore,
+};

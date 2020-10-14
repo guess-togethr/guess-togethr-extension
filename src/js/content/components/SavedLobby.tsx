@@ -68,11 +68,7 @@ const SavedLobby = React.forwardRef<HTMLDivElement, SavedLobbyProps>(
       },
       [id, onClick, deletable]
     );
-    // const [exited, setExited] = useState(true);
     const classes = useStyles();
-    // useEffect(() => {
-    //   deletable && setExited(false);
-    // }, [deletable]);
     return (
       <ListItem
         ref={ref}

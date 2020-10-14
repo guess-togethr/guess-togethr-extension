@@ -13,6 +13,7 @@ const clientStates = createSlice({
   initialState: clientStateEntity.getInitialState(),
   reducers: {
     setClientState: clientStateEntity.upsertOne,
+    userDisconnected: clientStateEntity.removeOne,
   },
   extraReducers: (builder) =>
     builder.addCase(leaveLobby, () => clientStateEntity.getInitialState()),
@@ -27,14 +28,14 @@ const localClientState = createSlice({
   reducers: {},
   extraReducers: (builder) =>
     builder
-      .addCase(joinLobby, (state, { payload: { identity, user } }) => ({
-        id: identity.publicKey,
+      .addCase(joinLobby, (state, { payload: { publicKey, user } }) => ({
+        id: publicKey,
         ggId: user,
       }))
       .addCase(leaveLobby, () => null),
 });
 
-export const { setClientState } = clientStates.actions;
+export const { setClientState, userDisconnected } = clientStates.actions;
 const clientStatesReducer = clientStates.reducer;
 const localClientStateReducer = localClientState.reducer;
 export {

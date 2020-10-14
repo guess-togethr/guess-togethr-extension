@@ -8,7 +8,11 @@ import idb from "random-access-idb";
 import Swarm from "@geut/discovery-swarm-webrtc";
 import { Remote, releaseProxy } from "comlink";
 import { EventEmitter } from "events";
-import { decodeLobbyId, generateLobbyId } from "../crypto";
+import {
+  decodeLobbyId,
+  generateLobbyId,
+  generateNoiseKeypair,
+} from "../crypto";
 
 const debug = Debug("network-feed");
 
@@ -21,7 +25,7 @@ function releaseMaybeProxy(f?: MaybeRemote<any>) {
 }
 
 export type NetworkFeedOpts = {
-  identity?: { publicKey: string; privateKey: string };
+  identity: { publicKey: string; privateKey: string };
 } & (
   | {
       isServer: true;
@@ -168,12 +172,12 @@ export class NetworkFeed extends EventEmitter {
     this.removeAllListeners();
   }
 
-  public get identity(): { publicKey: string; privateKey: string } {
-    return {
-      publicKey: bufferToBase64(this.hypercore.noiseKeyPair.publicKey),
-      privateKey: bufferToBase64(this.hypercore.noiseKeyPair.secretKey),
-    };
-  }
+  // public get identity(): { publicKey: string; privateKey: string } {
+  //   return {
+  //     publicKey: bufferToBase64(this.hypercore.noiseKeyPair.publicKey),
+  //     privateKey: bufferToBase64(this.hypercore.noiseKeyPair.secretKey),
+  //   };
+  // }
 
   public get length() {
     return this.hypercore.length;
@@ -275,6 +279,7 @@ export async function getTestLobby(isServer: boolean) {
     isServer,
     id: opts.lobbyId,
     privateKey: isServer ? opts.privateKey : undefined,
+    identity: generateNoiseKeypair(),
   });
   await feed.connect();
   return feed;

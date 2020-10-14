@@ -1,7 +1,7 @@
 import * as Comlink from "comlink";
 import { createBackgroundEndpoint, isMessagePort } from "comlink-extension";
 import { browser } from "webextension-polyfill-ts";
-import { savedLobbySelector, claimSavedLobby, saveLobby } from "./store";
+import { savedLobbySelectors, claimSavedLobby, saveLobby } from "./store";
 import { initializeNetworking, NetworkFeed } from "./network";
 import BackgroundEndpoint from "./backgroundEndpoint";
 
@@ -69,10 +69,10 @@ browser.webRequest.onBeforeRequest.addListener(
         BackgroundEndpoint.create(tabId).getStore(),
         initializeNetworking(),
       ]).then(([store]) => {
-        if (!savedLobbySelector.selectById(store.getState(), id)) {
+        if (!savedLobbySelectors.selectById(store.getState(), id)) {
           try {
-            const { identity } = new NetworkFeed({ isServer: false, id });
-            store.dispatch(saveLobby({ id, identity, isServer: false }));
+            // const { identity } = new NetworkFeed({ isServer: false, id });
+            store.dispatch(saveLobby({ id, isServer: false }));
           } catch (e) {
             store.dispatch(saveLobby({ id, error: e.message, tabId }));
           }

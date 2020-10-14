@@ -3,14 +3,17 @@ import {
   BackgroundStore,
   BackgroundRootState,
   releaseSavedLobby,
+  addIdentity,
+  unsafeIdentitySelectors,
 } from "./store";
-import { TabAwareStore, makeTabAwareStore } from "../utils";
+import { TabAwareStore, makeTabAwareStore, Expand } from "../utils";
 import { AnyAction } from "@reduxjs/toolkit";
 import { browser, WebNavigation } from "webextension-polyfill-ts";
 import { initializeNetworking, NetworkFeed, NetworkFeedOpts } from "./network";
 import equal from "fast-deep-equal";
 import * as Comlink from "comlink";
 import { TimerHandle, clearTimer, setTimer } from "./timer";
+import { generateNoiseKeypair } from "../crypto";
 
 const debug = require("debug")("background-endpoint");
 
@@ -79,14 +82,35 @@ export default class BackgroundEndpoint {
     });
   }
 
-  public createNetworkFeed(opts: NetworkFeedOpts) {
+  public generateIdentity(user: string) {
+    if (unsafeIdentitySelectors.selectById(this.store!.getState(), user)) {
+      debug("creating an identity for user who already has one", user);
+      throw new Error("Overwriting existing identity!");
+    }
+    return this.store!.dispatch(
+      addIdentity({ id: user, ...generateNoiseKeypair() })
+    ).payload.publicKey;
+  }
+
+  public createNetworkFeed(
+    opts: Omit<NetworkFeedOpts, "identity"> & { user: string }
+  ) {
     if (this.currentFeed && !equal(opts, this.currentFeedOpts)) {
       this.currentFeed.destroy();
       this.currentFeed = undefined;
     }
     if (!this.currentFeed || this.currentFeed.destroyed) {
-      this.currentFeed = new NetworkFeed(opts);
-      this.currentFeedOpts = opts;
+      const identity = unsafeIdentitySelectors.selectById(
+        this.store!.getState(),
+        opts.user
+      );
+      if (!identity) {
+        debug("createNetworkFeed could not find identity", opts);
+        throw new Error("Could not find identity!");
+      }
+      const feedOpts = Object.assign(opts, { identity }) as NetworkFeedOpts;
+      this.currentFeed = new NetworkFeed(feedOpts);
+      this.currentFeedOpts = feedOpts;
     }
     return Comlink.proxy(this.currentFeed);
   }

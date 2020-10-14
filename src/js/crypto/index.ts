@@ -32,3 +32,16 @@ export function decodeLobbyId(id: string) {
     return null;
   }
 }
+
+export function generateNoiseKeypair() {
+  const pair = {
+    publicKey: new Uint8Array(sodium.crypto_kx_PUBLICKEYBYTES),
+    privateKey: new Uint8Array(sodium.crypto_kx_SECRETKEYBYTES),
+  };
+
+  sodium.crypto_kx_keypair(pair.publicKey, pair.privateKey);
+  return {
+    publicKey: bufferToBase64(pair.publicKey),
+    privateKey: bufferToBase64(pair.privateKey),
+  };
+}

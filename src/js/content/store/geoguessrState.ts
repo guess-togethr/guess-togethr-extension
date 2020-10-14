@@ -8,7 +8,9 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { RootState, leaveLobby } from ".";
+import { identitySelectors } from "../../background/store";
 import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
+import { clientStateSelectors } from "./clientState";
 
 interface GeoguessrUser {
   id: string;
@@ -19,7 +21,7 @@ interface GeoguessrUser {
 
 interface GeoguessrState {
   url: string;
-  currentUser: GeoguessrUser | false | null;
+  currentUser: (GeoguessrUser & { publicKey: string }) | false | null;
   userQueryCache: EntityState<GeoguessrUser | { id: string }>;
   redirect?: string;
   timeDelta: number;
@@ -40,19 +42,27 @@ const parseUserResponse = (json: any) => ({
     : undefined,
 });
 
-export const checkCurrentUser = createAsyncThunk(
-  "geoguessr/setUser",
-  async (_, { dispatch }) => {
-    const response = await fetch("/api/v3/profiles/");
-    if (response.ok) {
-      const { user } = await response.json();
-      return parseUserResponse(user);
+export const checkCurrentUser = createAsyncThunk<
+  (GeoguessrUser & { publicKey: string }) | false,
+  void,
+  { extra: RemoteBackgroundEndpoint }
+>("geoguessr/setUser", async (_, { extra, dispatch }) => {
+  const response = await fetch("/api/v3/profiles/");
+  if (response.ok) {
+    const user = parseUserResponse((await response.json()).user);
+    let publicKey = identitySelectors.selectById(
+      extra.store.getState(),
+      user.id
+    )?.publicKey;
+    if (!publicKey) {
+      publicKey = await extra.generateIdentity(user.id);
     }
-
-    dispatch(leaveLobby());
-    return false;
+    return { ...user, publicKey };
   }
-);
+
+  dispatch(leaveLobby());
+  return false as const;
+});
 
 export const queryUsers = createAsyncThunk<
   GeoguessrUser[],
@@ -150,7 +160,7 @@ export const geoguessrMiddleware: Middleware<{}, RootState> = (store) => (
   const state = store.getState();
   const existingIds = userCacheSelectors.selectIds(state);
   const userList = (state.lobby.serverState?.users ?? [])
-    .concat(state.lobby.localState?.joinRequests ?? [])
+    .concat(clientStateSelectors.selectAll(state) ?? [])
     .map(({ ggId }) => ggId)
     .filter((id) => !existingIds.includes(id));
   if (userList.length) {

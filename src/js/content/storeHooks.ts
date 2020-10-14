@@ -3,7 +3,7 @@ import { Action, AnyAction, Store } from "@reduxjs/toolkit";
 import {
   BackgroundRootState,
   BackgroundDispatch,
-  savedLobbySelector,
+  savedLobbySelectors,
 } from "../background/store";
 import {
   createStoreHook,
@@ -51,7 +51,7 @@ export const useClaimedLobby = () => {
   return useBackgroundSelector(
     (state) =>
       backgroundEndpoint &&
-      savedLobbySelector
+      savedLobbySelectors
         .selectAll(state)
         .find((lobby) => lobby.tabId === backgroundEndpoint.tabId)
   );

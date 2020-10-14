@@ -19,8 +19,12 @@ import deepEqual from "fast-deep-equal";
 
 const debug = gtDebug("utils");
 
-type Without<T> = { [P in keyof T]?: undefined };
-export type XOR<T, U> = (Without<T> & U) | (Without<U> & T);
+// type Without<T> = { [P in keyof T]?: undefined };
+// export type XOR<T, U> = (Without<T> & U) | (Without<U> & T);
+type Sub<T, U> = T & { [P in Exclude<keyof U, keyof T>]?: never };
+export type XOR<T, U> = Sub<T, U> | Sub<U, T>;
+export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+export type Unpromisify<P> = P extends PromiseLike<infer T> ? T : P;
 
 type DraftableReducer<S, A = AnyAction> = (
   state: undefined | Draft<S>,
@@ -297,29 +301,70 @@ const asyncIterableTransferHandler = {
 // Make Comlink aware of the transfer handler by adding it to its transfer handler Map
 transferHandlers.set("asyncIterable", asyncIterableTransferHandler);
 
-type NonFunctionProperties<T> = {
-  [P in keyof T]: T[P] extends Function ? never : P;
-}[keyof T];
+type NonFunctionProperties<T> = Extract<
+  {
+    [P in keyof T]: T[P] extends Function ? never : P;
+  }[keyof T],
+  string | number
+>;
 
-type Unpromisify<P> = P extends Promise<infer T> ? T : P;
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
 
-export type CachedRemote<
+type CheckForUnion<T, TErr, TOk> = [T] extends [UnionToIntersection<T>]
+  ? TOk
+  : TErr;
+
+// export type CachedRemote<
+//   T,
+//   CachedProps extends NonFunctionProperties<T>
+// > = Omit<Remote<T>, CachedProps> & { [K in CachedProps]: Unpromisify<T[K]> };
+
+type MaybePromise<T> = PromiseLike<T> | T;
+
+type MapFunction<T, P extends string | number, R> = (
+  proxy: T
+) => MaybePromise<[P, R]>;
+type ValidArg<T, S extends string | number, R> =
+  | NonFunctionProperties<T>
+  | MapFunction<T, S, R>;
+
+type NewProps<
   T,
-  CachedProps extends NonFunctionProperties<T>
-> = Omit<Remote<T>, CachedProps> & { [K in CachedProps]: Unpromisify<T[K]> };
+  Arg extends ReadonlyArray<ValidArg<T, string | number, any>>
+> = UnionToIntersection<
+  {
+    [I in keyof Arg]: Arg[I] extends MapFunction<T, infer U, infer V>
+      ? { [key in U]: V }
+      : Arg[I] extends NonFunctionProperties<T>
+      ? { [key in Arg[I]]: Unpromisify<T[Arg[I]]> }
+      : never;
+  }[number]
+>;
+
+type CachedRemote<
+  T,
+  A extends ReadonlyArray<ValidArg<T, string | number, any>>
+> = Omit<T, Extract<keyof T, keyof NewProps<T, A>>> & NewProps<T, A>;
 
 export async function cacheRemoteProperties<
-  T,
-  P extends NonFunctionProperties<T>
->(remote: Remote<T>, ...props: ReadonlyArray<P>): Promise<CachedRemote<T, P>> {
-  const cache = new Map<keyof T, Remote<T>[P]>();
-  await Promise.all(
-    props.map(async (p) => {
-      cache.set(p, await remote[p]);
-    })
+  T extends object,
+  P extends ReadonlyArray<ValidArg<T, string | number, any>>
+>(remote: T, ...props: P): Promise<CachedRemote<T, P>> {
+  const cache = new Map<string | number | symbol, any>(
+    await Promise.all(
+      props.map(async (p) =>
+        p instanceof Function
+          ? await p(remote)
+          : ([p, await remote[p]] as const)
+      )
+    )
   );
   return (new Proxy(remote, {
-    get: (target, prop: P | keyof T) => {
+    get: (target, prop: keyof T) => {
       if (cache.has(prop)) {
         return cache.get(prop);
       } else if (prop === "then") {

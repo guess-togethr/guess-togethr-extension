@@ -2,6 +2,7 @@ import { RootState } from ".";
 import { createSelector } from "@reduxjs/toolkit";
 import { selectUser, userCacheSelectors } from "./geoguessrState";
 import gtDebug from "../../debug";
+import { clientStateSelectors } from "./clientState";
 
 const debug = gtDebug("lobby");
 
@@ -78,10 +79,35 @@ export function selectChallengeState(state: RootState): ChallengeState {
   return { state: ChallengeStateType.Idle };
 }
 
+// export type LobbyWithIdentity = FullSavedLobby & { identity: Identity };
+// type SelectedSavedLobby = XOR<FullSavedLobby, ErroredLobby>;
+
+// export const selectSavedLobbies = createSelector(
+//   identitySelectors.selectEntities,
+//   savedLobbySelectors.selectAll,
+//   (identities, savedLobbies): SelectedSavedLobby[] =>
+//     savedLobbies.map((lobby) => {
+//       if (isFullLobby(lobby) && lobby.user) {
+//         const identity = identities[lobby.user];
+//         return {
+//           ...lobby,
+//         };
+//       }
+//       return lobby;
+//     })
+// );
+
 export const selectMembers = (state: RootState) =>
   state.lobby.serverState?.users;
-export const selectOnlineUsers = (state: RootState) =>
-  state.lobby.localState?.onlineUsers;
+
+export const selectLocalClientId = (state: RootState) =>
+  state.lobby.localClientState?.id;
+
+export const selectOnlineUsers = createSelector(
+  clientStateSelectors.selectIds,
+  selectLocalClientId,
+  (clientIds, localClientId) => clientIds.concat(localClientId ?? [])
+);
 
 export const selectOnlineMembers = createSelector(
   selectMembers,

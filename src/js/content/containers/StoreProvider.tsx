@@ -1,43 +1,10 @@
 import { Store } from "@reduxjs/toolkit";
 import React, { useEffect, useState } from "react";
 import { Provider, useStore } from "react-redux";
-import { createLogger } from "redux-logger";
-import { remoteStoreWrapper } from "../../utils";
 import { debugStruct } from "../../debug";
 import { createStore, selectRedirect } from "../store";
 import { BackgroundStoreContext } from "../storeHooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
-
-const logger = createLogger({
-  logger: new Proxy(console, {
-    get: (target: any, prop) => {
-      if (prop === "group") {
-        return (data: any) => target.group(...data);
-      }
-      return target[prop];
-    },
-  }),
-  titleFormatter: (action, time) => {
-    const headerCSS = [
-      "color: gray; font-weight: lighter;",
-      "color: inherit;",
-      "color: gray; font-weight: lighter;",
-    ];
-    const parts = [
-      "%c BACKGROUND action",
-      `%c${String(action.type)}`,
-      `%c@ ${time}`,
-    ];
-
-    return [parts.join(" "), ...headerCSS] as any;
-  },
-  level: {
-    prevState: "log",
-    action: "log",
-    error: "log",
-    nextState: false,
-  },
-});
 
 const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
   const backgroundEndpoint = useBackgroundEndpoint();
@@ -47,19 +14,16 @@ const BackgroundStoreProvider: React.FunctionComponent = ({ children }) => {
   );
 
   useEffect(() => {
-    backgroundEndpoint
-      ?.getStore()
-      .then((store) => remoteStoreWrapper(store, logger))
-      .then((bgStore) => {
-        debugStruct.bgStore = bgStore;
-        // Prevent dispatches to background store if we're redirecting
-        store.subscribe(() => {
-          if (selectRedirect(store.getState())) {
-            bgStore.close();
-          }
-        });
-        setBackgroundStore(bgStore);
+    if (backgroundEndpoint && store) {
+      const bgStore = backgroundEndpoint.store;
+      debugStruct.bgStore = bgStore;
+      store.subscribe(() => {
+        if (selectRedirect(store.getState())) {
+          bgStore.close();
+        }
       });
+      setBackgroundStore(bgStore);
+    }
   }, [backgroundEndpoint, store]);
 
   return (

@@ -6,7 +6,7 @@ import {
   releaseSavedLobby,
   updateSavedLobby,
 } from "../../background/store";
-import { createDeepEqualSelector } from "../../utils";
+import { createDeepEqualSelector, Expand } from "../../utils";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import Shims from "../ggShims";
 import {
@@ -25,20 +25,20 @@ interface CurrentLobbyContainerProps
     CurrentLobbyProps,
     "name" | "connectionState" | "inviteUrl" | "onlineUsers"
   > {
-  claimedLobby: FullSavedLobby;
+  claimedLobby: FullSavedLobby & { user: string };
 }
 
-const claimedLobbySelector = createStructuredSelector<
-  FullSavedLobby,
-  Pick<FullSavedLobby, "id" | "identity" | "isServer">
->(
-  {
-    id: (l) => l.id,
-    identity: (l) => l.identity,
-    isServer: (l) => l.isServer,
-  },
-  createDeepEqualSelector
-);
+// const claimedLobbySelector = createStructuredSelector<
+//   LobbyWithUser,
+//   Pick<FullSavedLobby, "id" | "isServer">
+// >(
+//   {
+//     id: (l) => l.id,
+//     identity: (l) => l.identity,
+//     isServer: (l) => l.isServer,
+//   },
+//   createDeepEqualSelector
+// );
 
 const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
   const { claimedLobby, ...rest } = props;
@@ -47,7 +47,7 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
   const backgroundDispatch = useBackgroundDispatch();
 
   // Use custom deep selector that only extracts relevant lobby opts
-  const claimedLobbyOpts = claimedLobbySelector(claimedLobby);
+  // const claimedLobbyOpts = claimedLobbySelector(claimedLobby);
   const connectedLobby = useAppSelector((state) => state.lobby?.localState);
   const connectedLobbyId = connectedLobby?.id;
   const connectedLobbyName = useAppSelector(
@@ -102,8 +102,8 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
 
   // Join and leave lobby properly on mount/unmount
   useEffect(() => {
-    if (connectedLobbyId !== claimedLobbyOpts.id) {
-      appDispatch(createLobby(claimedLobbyOpts));
+    if (connectedLobbyId !== claimedLobby.id) {
+      appDispatch(createLobby(claimedLobby));
     }
 
     if (connectedLobbyId) {
@@ -111,7 +111,7 @@ const CurrentLobbyContainer = (props: CurrentLobbyContainerProps) => {
         appDispatch(leaveLobby());
       };
     }
-  }, [claimedLobbyOpts, connectedLobbyId, appDispatch]);
+  }, [claimedLobby, connectedLobbyId, appDispatch]);
 
   return (
     <>

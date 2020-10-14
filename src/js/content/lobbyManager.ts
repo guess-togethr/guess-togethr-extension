@@ -13,7 +13,6 @@ import type { RemoteBackgroundEndpoint } from "./containers/BackgroundEndpointPr
 import {
   BreakCycleRootState,
   setServerState,
-  userConnected,
   userDisconnected,
   trackSharedStatePatches,
   errorLobby,
@@ -31,21 +30,18 @@ export type Identity = { publicKey: string; privateKey: string };
 export type LobbyServerOpts = {
   isServer: true;
   id?: string;
-  identity?: Identity;
-  name?: string;
+  name: string;
 };
 export type LobbyClientOpts = {
   isServer: false;
   id: string;
-  identity?: Identity;
 };
 
-export type LobbyOpts = LobbyClientOpts | LobbyServerOpts;
+export type LobbyOpts = { user: string } & (LobbyClientOpts | LobbyServerOpts);
 
 class LobbyBase {
   protected feed!: Remote<NetworkFeed & ProxyMarked>;
   public id!: string;
-  public identity!: Identity;
   private stopPatchTracker: (() => void) | null = null;
   constructor(
     private readonly backgroundEndpoint: RemoteBackgroundEndpoint,
@@ -56,7 +52,6 @@ class LobbyBase {
   public async init() {
     this.feed = await this.backgroundEndpoint.createNetworkFeed(this.opts);
     this.id = await this.feed.lobbyId;
-    this.identity = await this.feed.identity;
   }
 
   public async connect() {
@@ -107,7 +102,7 @@ class LobbyBase {
 
   private onPeerJoin = (id: string) => {
     debug("Peer joined");
-    this.store.dispatch(userConnected(id));
+    // this.store.dispatch(userConnected(id));
     const message: ClientMessage = {
       type: "set-client-state",
       payload: this.store.getState().lobby.localClientState!,
@@ -248,11 +243,11 @@ export class LobbyServer extends LobbyBase {
       }
       const newSharedState = {
         name: this.name,
-        ownerId: this.identity.publicKey,
+        ownerId: state.geoguessr.currentUser.publicKey,
         users: [
           {
             ggId: state.geoguessr.currentUser.id,
-            id: this.identity.publicKey,
+            id: state.geoguessr.currentUser.publicKey,
           },
         ],
       };

@@ -9,10 +9,10 @@ import React, {
 import {
   claimSavedLobby,
   FullSavedLobby,
+  isErroredLobby,
   isFullLobby,
   removeSavedLobby,
-  SavedLobby,
-  savedLobbySelector,
+  savedLobbySelectors,
   saveLobby,
   updateSavedLobby,
 } from "../../background/store";
@@ -33,18 +33,17 @@ import {
 } from "../storeHooks";
 import { useBackgroundEndpoint } from "./BackgroundEndpointProvider";
 import CurrentLobbyContainer from "./CurrentLobby";
-import { selectUser, createLobby } from "../store";
+import { selectUser, createLobby, selectUrl } from "../store";
 
-function isErroredLobby(
-  lobby: SavedLobby | null
-): lobby is Exclude<typeof lobby, FullSavedLobby | null> {
-  return lobby !== null && !isFullLobby(lobby);
+function lobbyHasUser(lobby: any): lobby is { user: string } {
+  return !!lobby.user;
 }
 
 const ToolbarContainer = () => {
   const currentUser = useAppSelector(selectUser);
+  const url = useAppSelector(selectUrl);
   const savedLobbies = useBackgroundSelector(
-    savedLobbySelector.selectAll
+    savedLobbySelectors.selectAll
   ).filter(
     (lobby) =>
       isErroredLobby(lobby) ||
@@ -57,28 +56,29 @@ const ToolbarContainer = () => {
   const backgroundDispatch = useBackgroundDispatch();
   const backgroundEndpoint = useBackgroundEndpoint();
 
-  const claimedLobbyIndex = savedLobbies.findIndex(
-    ({ tabId }) => tabId === backgroundEndpoint?.tabId
+  const claimedLobby = savedLobbies.find(
+    (lobby) => !!lobby.tabId && lobby.tabId === backgroundEndpoint?.tabId
   );
-  const claimedLobby =
-    claimedLobbyIndex >= 0
-      ? savedLobbies.splice(claimedLobbyIndex, 1)[0]
-      : null;
+  claimedLobby && savedLobbies.splice(savedLobbies.indexOf(claimedLobby), 1);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Start opened if claimed lobby has an error
-  const [open, setOpen] = useState(isErroredLobby(claimedLobby));
+  // Start opened if claimed lobby has an error or user needs to sign in
+  const [open, setOpen] = useState(
+    isErroredLobby(claimedLobby) ||
+      (!!claimedLobby && !currentUser && !url.includes("signin"))
+  );
 
   const onCreate = useCallback(
     (name) =>
-      dispatch(createLobby({ isServer: true, name }))
+      currentUser &&
+      dispatch(createLobby({ isServer: true, name, user: currentUser.id }))
         .then(unwrapResult)
         .then(({ saveState }) => {
           backgroundDispatch(saveLobby(saveState));
           backgroundDispatch(claimSavedLobby(saveState.id));
         }),
-    [dispatch, backgroundDispatch]
+    [dispatch, backgroundDispatch, currentUser]
   );
 
   const onDelete = useCallback(
@@ -100,8 +100,8 @@ const ToolbarContainer = () => {
   // Update lobby user
   useEffect(() => {
     if (
-      claimedLobby !== null &&
-      isFullLobby(claimedLobby) &&
+      claimedLobby &&
+      !isErroredLobby(claimedLobby) &&
       claimedLobby.user === undefined &&
       currentUser
     ) {
@@ -145,7 +145,7 @@ const ToolbarContainer = () => {
   );
 
   const currentLobbyElement =
-    currentUser && claimedLobby && isFullLobby(claimedLobby) ? (
+    isFullLobby(claimedLobby) && lobbyHasUser(claimedLobby) ? (
       <CurrentLobbyContainer
         rootRef={dropdownRef}
         claimedLobby={claimedLobby}
