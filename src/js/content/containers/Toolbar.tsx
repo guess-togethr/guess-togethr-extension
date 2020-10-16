@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import {
   claimSavedLobby,
-  FullSavedLobby,
   isErroredLobby,
   isFullLobby,
   removeSavedLobby,

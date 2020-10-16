@@ -1,4 +1,3 @@
-import { User } from "../../protocol/schema";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts } from "../lobbyManager";
 import type { FullSavedLobby } from "../../background/store";

@@ -179,10 +179,10 @@ export function crc32(buf: Uint8Array) {
   return (crc ^ -1) >>> 0;
 }
 
-export async function remoteStoreWrapper<S>(
-  remoteStore: Remote<Store<S>>,
+export async function remoteStoreWrapper<S extends {}, A extends Action>(
+  remoteStore: Remote<Store<S, A>>,
   ...middlewares: Middleware<{}, S>[]
-): Promise<Store<S> & { close: () => void }> {
+): Promise<Store<S, A> & { close: () => void }> {
   const subscribers = new Set<() => void>();
   let closed = false;
 
@@ -194,14 +194,14 @@ export async function remoteStoreWrapper<S>(
       subscribers.forEach((f) => f());
     })
   );
-  const createStore: () => Store<S> = () => ({
+  const createStore: () => Store<S, A> = () => ({
     close: () => {
       debug("background store closed");
       closed = true;
       subscribers.clear();
     },
-    dispatch: (action) =>
-      (!closed && (remoteStore.dispatch(action) as unknown)) as any,
+    dispatch: (action: A) => !closed && (remoteStore as any).dispatch(action),
+
     getState: () => latestState,
     subscribe(listener) {
       subscribers.add(listener);

@@ -5,3 +5,9 @@ secrets.*.js
 NOTES
 .env*
 sample_pages/
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

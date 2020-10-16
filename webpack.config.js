@@ -1,5 +1,6 @@
 var webpack = require("webpack"),
   path = require("path"),
+  PnpWebpackPlugin = require("pnp-webpack-plugin"),
   CleanWebpackPlugin = require("clean-webpack-plugin").CleanWebpackPlugin,
   CopyWebpackPlugin = require("copy-webpack-plugin"),
   WriteFilePlugin = require("write-file-webpack-plugin"),
@@ -98,12 +99,14 @@ var options = {
     ],
   },
   resolve: {
+    plugins: [PnpWebpackPlugin],
     alias: alias,
     extensions: fileExtensions
       .map((extension) => "." + extension)
       .concat([".jsx", ".js", ".tsx", ".ts", ".css", ".svg"]),
   },
   resolveLoader: {
+    plugins: [PnpWebpackPlugin.moduleLoader(module)],
     alias: {
       "schema-loader": path.resolve(__dirname, "utils/schema-loader.ts"),
     },

@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
-import { createStructuredSelector } from "reselect";
 import {
   FullSavedLobby,
   releaseSavedLobby,
   updateSavedLobby,
 } from "../../background/store";
-import { createDeepEqualSelector, Expand } from "../../utils";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import Shims from "../ggShims";
 import {

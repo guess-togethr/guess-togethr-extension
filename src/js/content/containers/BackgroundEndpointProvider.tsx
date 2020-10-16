@@ -2,7 +2,7 @@ import { wrap } from "comlink";
 import { createEndpoint } from "comlink-extension";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { browser } from "webextension-polyfill-ts";
-import BackgroundEndpoint from "../../background/backgroundEndpoint";
+import type BackgroundEndpoint from "../../background/backgroundEndpoint";
 import {
   cacheRemoteProperties,
   remoteStoreWrapper,
