@@ -25,5 +25,5 @@ declare module "promise-defer" {
     promise: PromiseLike<T>;
   }
   const defer: <T, E = void>() => Deferred<T, E>;
-  export default defe;
+  export default defer;
 }

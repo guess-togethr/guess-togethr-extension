@@ -89,7 +89,7 @@ export class NetworkFeed extends EventEmitter {
         throw new Error("Invalid Lobby ID");
       }
 
-      const db = idb("hypercore");
+      const db = idb("gt-hypercore");
       this.lobbyId = lobbyId;
       this.isServer = opts.isServer;
       this.publicKey = Buffer.from(publicKey);
@@ -187,7 +187,7 @@ export class NetworkFeed extends EventEmitter {
   //   };
   // }
 
-  public get length() {
+  public get length(): number {
     return this.hypercore.length;
   }
 
