@@ -9,5 +9,6 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "npm.packageManager": "yarn",
   "eslint.packageManager": "yarn",
-  "prettier.packageManager": "yarn"
+  "prettier.packageManager": "yarn",
+  "jest.pathToJest": "yarn jest --passWithNoTests --forceExit"
 }

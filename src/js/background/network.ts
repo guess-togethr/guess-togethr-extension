@@ -1,7 +1,8 @@
 import "webrtc-adapter";
-import { Deferred, base64ToBuffer, bufferToBase64 } from "../utils";
+import { base64ToBuffer, bufferToBase64 } from "../utils";
 import sodium from "../crypto/sodium_shim";
 import Debug from "debug";
+import defer from "promise-defer";
 
 import idb from "random-access-idb";
 
@@ -42,7 +43,8 @@ export class NetworkFeed extends EventEmitter {
   private readonly swarm: ReturnType<typeof Swarm>;
   private swarmConnected = false;
   private readonly hypercore: any;
-  private readonly hypercoreReady = new Deferred();
+  private readonly hypercoreReadyPromise = defer<void, Error>();
+  private readonly swarmConnectedPromise = defer();
   private readonly extension: any;
   private readonly publicKey: Buffer;
   private static readonly BATCH_SIZE = 5;
@@ -93,11 +95,16 @@ export class NetworkFeed extends EventEmitter {
       this.publicKey = Buffer.from(publicKey);
 
       this.swarm = Swarm({
-        bootstrap: [process.env.SIGNAL_URL],
+        bootstrap: [
+          `ws://${process.env.SIGNAL_HOSTNAME}:${process.env.SIGNAL_PORT}`,
+        ],
         simplePeer: NetworkFeed.simplePeerConfig,
         stream: ({ initiator }: any) =>
           this.hypercore.replicate(initiator, { live: true }),
       });
+      this.swarm.signal.once("connected", () =>
+        this.swarmConnectedPromise.resolve()
+      );
 
       this.hypercore = hypercore(
         (name: string) =>
@@ -117,7 +124,7 @@ export class NetworkFeed extends EventEmitter {
       this.hypercore.once("ready", this.onHypercoreReady);
       this.hypercore.once("error", (err: any) => {
         this.destroy();
-        this.hypercoreReady.reject(err);
+        this.hypercoreReadyPromise.reject(err);
       });
       this.hypercore.on("peer-open", (peer: any) => {
         peer.publicKeyString = bufferToBase64(peer.remotePublicKey);
@@ -154,9 +161,10 @@ export class NetworkFeed extends EventEmitter {
   }
 
   public async connect() {
-    await this.hypercoreReady.promise;
+    await this.hypercoreReadyPromise.promise;
     if (!this.swarmConnected) {
       this.swarm.join(this.publicKey);
+      await this.swarmConnectedPromise.promise;
       this.swarmConnected = true;
     } else {
       this.hypercore.peers.forEach((p: any) => {
@@ -238,9 +246,11 @@ export class NetworkFeed extends EventEmitter {
 
   private readonly onHypercoreReady = () => {
     if (this.isServer && !this.hypercore.writable) {
-      this.hypercoreReady.reject(new Error("No existing hypercore found"));
+      this.hypercoreReadyPromise.reject(
+        new Error("No existing hypercore found")
+      );
     } else {
-      this.hypercoreReady.resolve();
+      this.hypercoreReadyPromise.resolve();
     }
   };
 

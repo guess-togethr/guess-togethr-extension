@@ -159,8 +159,8 @@ export const geoguessrMiddleware: Middleware<{}, RootState> = (store) => (
   // Update user cache if there are some new join requests or actual users
   const state = store.getState();
   const existingIds = userCacheSelectors.selectIds(state);
-  const userList = (state.lobby.serverState?.users ?? [])
-    .concat(clientStateSelectors.selectAll(state) ?? [])
+  const userList = clientStateSelectors
+    .selectAll(state)
     .map(({ ggId }) => ggId)
     .filter((id) => !existingIds.includes(id));
   if (userList.length) {

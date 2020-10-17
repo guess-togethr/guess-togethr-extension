@@ -44,5 +44,22 @@
         // "--vmodule=*/webrtc/*=4,*/libjingle/*=4"
       ]
     }
+    ,
+    {
+      "type": "node",
+      "name": "vscode-jest-tests",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run", "--inspect-brk" 
+      ],
+      "program": "jest",
+      "args": ["--runInBand"],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**/*.js"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      // "disableOptimisticBPs": true
+    }
   ]
 }
