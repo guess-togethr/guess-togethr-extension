@@ -26,5 +26,4 @@ declare module "promise-defer" {
   }
   const defer: <T, E = void>() => Deferred<T, E>;
   export default defer;
-  export type { Deferred };
 }
