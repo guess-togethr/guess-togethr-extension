@@ -1,6 +1,5 @@
 import { wrap } from "comlink";
-import defer from "promise-defer";
-import type { Deferred } from "promise-defer";
+import defer, { Deferred } from "promise-defer";
 
 enum MessageType {
   READY,

@@ -175,26 +175,26 @@ const lobbyMiddleware: Middleware<{}, BackgroundRootState> = (store) => (
   return next(action);
 };
 
-// Prevent saving errored lobbies in production mode
-const storeTransform = createTransform<
-  ReturnType<typeof savedLobbies["reducer"]>,
-  ReturnType<typeof savedLobbies["reducer"]>
->(
-  (state) =>
-    createNextState(state, (draft) => {
-      savedLobbyLocalSelector
-        .selectAll(draft)
-        .forEach((e) =>
-          !isFullLobby(e)
-            ? savedLobbyAdapter.removeOne(draft, e.id)
-            : delete e.tabId
-        );
-    }),
-  (state) => state,
-  { whitelist: ["allLobbies"] }
-);
-
 function createStore() {
+  // Prevent saving errored lobbies in production mode
+  const storeTransform = createTransform<
+    ReturnType<typeof savedLobbies["reducer"]>,
+    ReturnType<typeof savedLobbies["reducer"]>
+  >(
+    (state) =>
+      createNextState(state, (draft) => {
+        savedLobbyLocalSelector
+          .selectAll(draft)
+          .forEach((e) =>
+            !isFullLobby(e)
+              ? savedLobbyAdapter.removeOne(draft, e.id)
+              : delete e.tabId
+          );
+      }),
+    (state) => state,
+    { whitelist: ["allLobbies"] }
+  );
+
   const store = configureStore({
     reducer: persistReducer<BackgroundRootState>(
       {

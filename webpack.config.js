@@ -7,6 +7,7 @@ var webpack = require("webpack"),
   ReloadPlugin = require("./ReloadPlugin"),
   ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin"),
   Dotenv = require("dotenv-webpack"),
+  TerserPlugin = require("terser-webpack-plugin"),
   BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
     .BundleAnalyzerPlugin;
 
@@ -46,6 +47,10 @@ module.exports = ({ prod }) => ({
     rules: [
       {
         test: /remote-redux-devtools/,
+        sideEffects: false,
+      },
+      {
+        test: /prop-types/,
         sideEffects: false,
       },
       {
@@ -121,7 +126,7 @@ module.exports = ({ prod }) => ({
         backgroundScript: "background",
       }),
     // clean the build folder
-    new CleanWebpackPlugin(),
+    !prod && new CleanWebpackPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     // new webpack.EnvironmentPlugin({ NODE_ENV: "development" }),
     new CopyWebpackPlugin({
@@ -142,12 +147,16 @@ module.exports = ({ prod }) => ({
       ],
     }),
     new CopyWebpackPlugin({ patterns: [{ from: "./img/icon-128.png" }] }),
-    new WriteFilePlugin(),
+    !prod && new WriteFilePlugin(),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
     }),
     new Dotenv(),
-    prod && new BundleAnalyzerPlugin({ analyzerMode: "static" }),
+    prod &&
+      new BundleAnalyzerPlugin({
+        analyzerMode: "static",
+        generateStatsFile: true,
+      }),
     new ForkTsCheckerWebpackPlugin({
       typescript: {
         configFile: path.resolve(__dirname, "./tsconfig.json"),
@@ -159,4 +168,7 @@ module.exports = ({ prod }) => ({
   devtool: !prod ? "inline-cheap-module-source-map" : undefined,
   bail: prod,
   performance: { hints: false },
+  optimization: {
+    minimizer: [new TerserPlugin()],
+  },
 });
