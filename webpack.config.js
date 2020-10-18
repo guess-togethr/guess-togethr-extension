@@ -28,14 +28,12 @@ var fileExtensions = [
   "woff2",
 ];
 
-module.exports = ({ prod }) => ({
+module.exports = ({ prod, dev }) => ({
   context: path.resolve(__dirname, "src"),
   mode: prod ? "production" : "development",
   entry: {
     background: "./background/background.ts",
-    content: [!prod && "react-devtools", "./content/content.tsx"].filter(
-      Boolean
-    ),
+    content: [dev && "react-devtools", "./content/content.tsx"].filter(Boolean),
     interceptor: "./content/mapsInterceptor.ts",
   },
   output: {
@@ -51,10 +49,6 @@ module.exports = ({ prod }) => ({
       },
       {
         test: /prop-types/,
-        sideEffects: false,
-      },
-      {
-        test: /redux-persist/,
         sideEffects: false,
       },
       {
@@ -120,13 +114,13 @@ module.exports = ({ prod }) => ({
     },
   },
   plugins: [
-    !prod &&
+    dev &&
       new ReloadPlugin({
         contentScripts: ["content"],
         backgroundScript: "background",
       }),
     // clean the build folder
-    !prod && new CleanWebpackPlugin(),
+    dev && new CleanWebpackPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     // new webpack.EnvironmentPlugin({ NODE_ENV: "development" }),
     new CopyWebpackPlugin({
@@ -147,7 +141,7 @@ module.exports = ({ prod }) => ({
       ],
     }),
     new CopyWebpackPlugin({ patterns: [{ from: "./img/icon-128.png" }] }),
-    !prod && new WriteFilePlugin(),
+    dev && new WriteFilePlugin(),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
     }),
@@ -165,8 +159,8 @@ module.exports = ({ prod }) => ({
     }),
   ].filter(Boolean),
 
-  devtool: !prod ? "inline-cheap-module-source-map" : undefined,
-  bail: prod,
+  devtool: dev ? "inline-cheap-module-source-map" : undefined,
+  bail: !!prod,
   performance: { hints: false },
   optimization: {
     minimizer: [new TerserPlugin()],

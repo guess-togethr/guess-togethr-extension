@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug webpack",
+      "name": "Debug webpack start",
       "program": "${workspaceFolder}/utils/webserver.js",
       "request": "launch",
       "type": "node",

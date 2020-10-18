@@ -1,6 +1,7 @@
+require("ts-node/register");
 var WebpackDevServer = require("webpack-dev-server"),
   webpack = require("webpack"),
-  config = require("../webpack.config")({ env: { dev: true } }),
+  config = require("../webpack.config")({ dev: true }),
   env = require("./env"),
   path = require("path"),
   CopyWebpackPlugin = require("copy-webpack-plugin");
