@@ -12,6 +12,22 @@
       "runtimeArgs": ["-r", "ts-node/register"]
     },
     {
+      "name": "Debug webpack build",
+      "program": "build",
+      "request": "launch",
+      "type": "node",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["run", "--inspect-brk"]
+    },
+    {
+      "name": "Debug current file",
+      "request": "launch",
+      "type": "node",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["node", "--inspect-brk"],
+      "program": "${file}"
+    },
+    {
       "name": "Debug cosmos",
       "type": "node",
       "request": "launch",

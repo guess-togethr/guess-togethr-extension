@@ -1,5 +1,4 @@
 import { wrap } from "comlink";
-// import { Deferred } from "../utils";
 import defer, { Deferred } from "promise-defer";
 
 enum MessageType {
@@ -27,7 +26,7 @@ type Message = { source: "guessTogethr"; id: string } & (
 export class MapProxyManager {
   private unprocessedProxies: { type: string; port: MessagePort }[] = [];
   private ready = defer();
-  private more: Deferred<void, void> | null = null;
+  private more: Deferred<void> | null = null;
   private readonly id = Math.random().toString(36).substring(2, 15);
 
   constructor() {

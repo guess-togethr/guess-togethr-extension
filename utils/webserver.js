@@ -1,6 +1,6 @@
 var WebpackDevServer = require("webpack-dev-server"),
   webpack = require("webpack"),
-  config = require("../webpack.config"),
+  config = require("../webpack.config")({ env: { dev: true } }),
   env = require("./env"),
   path = require("path"),
   CopyWebpackPlugin = require("copy-webpack-plugin");

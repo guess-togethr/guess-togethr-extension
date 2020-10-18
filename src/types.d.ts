@@ -19,7 +19,7 @@ declare module "!schema-loader!*";
 declare module "*.svg";
 declare module "*.html";
 declare module "promise-defer" {
-  interface Deferred<T, E> {
+  export interface Deferred<T, E = void> {
     resolve(arg?: T): void;
     reject(arg?: E): void;
     promise: PromiseLike<T>;

@@ -1,5 +1,5 @@
-import { NetworkFeed, initializeNetworking } from "../js/background/network";
-import { generateNoiseKeypair } from "../js/crypto";
+import { NetworkFeed, initializeNetworking } from "../background/network";
+import { generateNoiseKeypair } from "../crypto";
 import { SignalServer } from "@geut/discovery-swarm-webrtc/server";
 import http from "http";
 import RAM from "random-access-memory";

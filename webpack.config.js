@@ -7,12 +7,13 @@ var webpack = require("webpack"),
   ReloadPlugin = require("./ReloadPlugin"),
   ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin"),
   Dotenv = require("dotenv-webpack"),
+  TerserPlugin = require("terser-webpack-plugin"),
   BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
     .BundleAnalyzerPlugin;
 
 var alias = {
-  "sodium-native": path.resolve(__dirname, "src/js/crypto/sodium_shim_cjs.js"),
-  crypto: path.resolve(__dirname, "src/js/crypto/crypto_shim.js"),
+  "sodium-native": path.resolve(__dirname, "src/crypto/sodium_shim_cjs.js"),
+  crypto: path.resolve(__dirname, "src/crypto/crypto_shim.js"),
 };
 
 var fileExtensions = [
@@ -27,16 +28,15 @@ var fileExtensions = [
   "woff2",
 ];
 
-var options = {
+module.exports = ({ prod }) => ({
   context: path.resolve(__dirname, "src"),
-  mode: process.env.NODE_ENV || "development",
+  mode: prod ? "production" : "development",
   entry: {
-    background: "./js/background/background.ts",
-    content: [
-      process.env.NODE_ENV === "development" && "react-devtools",
-      "./js/content/content.tsx",
-    ].filter(Boolean),
-    interceptor: "./js/content/mapsInterceptor.ts",
+    background: "./background/background.ts",
+    content: [!prod && "react-devtools", "./content/content.tsx"].filter(
+      Boolean
+    ),
+    interceptor: "./content/mapsInterceptor.ts",
   },
   output: {
     path: path.resolve(__dirname, "build"),
@@ -47,6 +47,14 @@ var options = {
     rules: [
       {
         test: /remote-redux-devtools/,
+        sideEffects: false,
+      },
+      {
+        test: /prop-types/,
+        sideEffects: false,
+      },
+      {
+        test: /redux-persist/,
         sideEffects: false,
       },
       {
@@ -112,15 +120,15 @@ var options = {
     },
   },
   plugins: [
-    process.env.NODE_ENV === "development" &&
+    !prod &&
       new ReloadPlugin({
         contentScripts: ["content"],
         backgroundScript: "background",
       }),
     // clean the build folder
-    new CleanWebpackPlugin(),
+    !prod && new CleanWebpackPlugin(),
     // expose and write the allowed env vars on the compiled bundle
-    new webpack.EnvironmentPlugin({ NODE_ENV: "development" }),
+    // new webpack.EnvironmentPlugin({ NODE_ENV: "development" }),
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -139,13 +147,16 @@ var options = {
       ],
     }),
     new CopyWebpackPlugin({ patterns: [{ from: "./img/icon-128.png" }] }),
-    new WriteFilePlugin(),
+    !prod && new WriteFilePlugin(),
     new webpack.ProvidePlugin({
       Buffer: ["buffer", "Buffer"],
     }),
     new Dotenv(),
-    process.env.NODE_ENV === "production" &&
-      new BundleAnalyzerPlugin({ generateStatsFile: true }),
+    prod &&
+      new BundleAnalyzerPlugin({
+        analyzerMode: "static",
+        generateStatsFile: true,
+      }),
     new ForkTsCheckerWebpackPlugin({
       typescript: {
         configFile: path.resolve(__dirname, "./tsconfig.json"),
@@ -153,10 +164,11 @@ var options = {
       },
     }),
   ].filter(Boolean),
-};
 
-if (process.env.NODE_ENV === "development") {
-  options.devtool = "inline-cheap-module-source-map";
-}
-
-module.exports = options;
+  devtool: !prod ? "inline-cheap-module-source-map" : undefined,
+  bail: prod,
+  performance: { hints: false },
+  optimization: {
+    minimizer: [new TerserPlugin()],
+  },
+});
