@@ -1,5 +1,6 @@
 import { wrap } from "comlink";
-import { Deferred } from "../utils";
+// import { Deferred } from "../utils";
+import defer, { Deferred } from "promise-defer";
 
 enum MessageType {
   READY,
@@ -25,8 +26,8 @@ type Message = { source: "guessTogethr"; id: string } & (
 
 export class MapProxyManager {
   private unprocessedProxies: { type: string; port: MessagePort }[] = [];
-  private ready = new Deferred();
-  private more: Deferred<void> | null = null;
+  private ready = defer();
+  private more: Deferred<void, void> | null = null;
   private readonly id = Math.random().toString(36).substring(2, 15);
 
   constructor() {
@@ -87,7 +88,7 @@ export class MapProxyManager {
   public async *[Symbol.asyncIterator]() {
     while (true) {
       while (this.unprocessedProxies.length === 0) {
-        this.more = new Deferred();
+        this.more = defer();
         await this.more.promise;
         this.more = null;
       }

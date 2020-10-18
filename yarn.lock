@@ -4643,6 +4643,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chokidar@npm:^3.4.2":
+  version: 3.4.3
+  resolution: "chokidar@npm:3.4.3"
+  dependencies:
+    anymatch: ~3.1.1
+    braces: ~3.0.2
+    fsevents: ~2.1.2
+    glob-parent: ~5.1.0
+    is-binary-path: ~2.1.0
+    is-glob: ~4.0.1
+    normalize-path: ~3.0.0
+    readdirp: ~3.5.0
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  checksum: b5a566b31267b1a71c2e7544fbf8c21f597883515d9bfc0356719be6c3b34ee51b0329f3ee5f5d98060ce2930be68f8c33b53f8b3659dc101fd51be265831deb
+  languageName: node
+  linkType: hard
+
 "chownr@npm:^1.1.1":
   version: 1.1.4
   resolution: "chownr@npm:1.1.4"
@@ -7499,13 +7518,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fork-ts-checker-webpack-plugin@npm:^5.2.0":
-  version: 5.2.0
-  resolution: "fork-ts-checker-webpack-plugin@npm:5.2.0"
+"fork-ts-checker-webpack-plugin@npm:alpha":
+  version: 6.0.0-alpha.1
+  resolution: "fork-ts-checker-webpack-plugin@npm:6.0.0-alpha.1"
   dependencies:
     "@babel/code-frame": ^7.8.3
     "@types/json-schema": ^7.0.5
     chalk: ^4.1.0
+    chokidar: ^3.4.2
     cosmiconfig: ^6.0.0
     deepmerge: ^4.2.2
     fs-extra: ^9.0.0
@@ -7514,7 +7534,7 @@ __metadata:
     schema-utils: 2.7.0
     semver: ^7.3.2
     tapable: ^1.0.0
-  checksum: 642a4ce10979226ed223db4e7bcfcc756cc79414d2b12815d1af86cf1c09173451e394baf2f1184c4c0381e4d9ec23beaec4ef1d6d7f99236aad1f0fe04df26f
+  checksum: 7c9f5caf100a366da31d1ff6e5c2a2b7f914e67bfe4c5b4ddec08bc3546c2ec3df02d5dcafc5a0865e73cc31dc99a80383e7661c374a4061cda5123a65412e99
   languageName: node
   linkType: hard
 
@@ -8139,7 +8159,7 @@ fsevents@^1.2.7:
     faker: ^4.1.0
     fast-deep-equal: ^3.1.3
     file-loader: 4.3.0
-    fork-ts-checker-webpack-plugin: ^5.2.0
+    fork-ts-checker-webpack-plugin: alpha
     fs-extra: 8.1.0
     html-loader: ^1.3.1
     html-webpack-plugin: 3.2.0
@@ -13699,6 +13719,15 @@ fsevents@^1.2.7:
   dependencies:
     picomatch: ^2.2.1
   checksum: 0159f43eb0a90cf4fde5989b607e0a6bef4e6332dc8648f1b50fbc013f1158e1d021bcfd6dad1dc2895da2bb14cdac408239d047e3d61a01dd3a44376e6ec1f1
+  languageName: node
+  linkType: hard
+
+"readdirp@npm:~3.5.0":
+  version: 3.5.0
+  resolution: "readdirp@npm:3.5.0"
+  dependencies:
+    picomatch: ^2.2.1
+  checksum: a64fe5606937d9655252230003362d95da05dbfd3baecedb4bb8c1bc0df497d051a192f9b75345c944e58a0b362c68349be602d6dbf05d03770e510b35a9f80f
   languageName: node
   linkType: hard
 
