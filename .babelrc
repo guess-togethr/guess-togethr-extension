@@ -1,7 +1,8 @@
 {
   "presets": [
     "@babel/react",
-    ["@babel/typescript", { "onlyRemoveTypeImports": true }]
+    "@babel/typescript",
+    // "@babel/preset-env",
   ],
   "plugins": [
     "react-hot-loader/babel",
