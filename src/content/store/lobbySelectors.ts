@@ -148,6 +148,10 @@ export const selectConnectionState = createSelector(
       return ConnectionState.Error;
     }
 
+    if (!localState.connected) {
+      return ConnectionState.Connecting;
+    }
+
     if (!members || !owner) {
       return ConnectionState.GettingInitialData;
     }

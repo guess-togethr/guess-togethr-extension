@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { LobbyClient, LobbyServer, LobbyOpts } from "../lobbyManager";
-import type { FullSavedLobby } from "../../background/store";
+import type { FullSavedLobby } from "../../background/store/savedLobbies";
 import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import { RootState, selectUser } from ".";
 
@@ -8,6 +8,7 @@ interface LocalState {
   id: string;
   isServer: boolean;
   error?: string;
+  connected: boolean;
   // onlineUsers: string[];
   // joinRequests: User[];
 }
@@ -39,9 +40,17 @@ export const createLobby = createAsyncThunk<
   };
 
   store.dispatch(joinLobby(ret));
-  await lobby.connect();
+  // await lobby.connect();
+  store.dispatch(connectToLobby(lobby));
   return { lobby, saveState: ret };
 });
+
+const connectToLobby = createAsyncThunk<void, LobbyServer | LobbyClient>(
+  "lobby/connect",
+  async (lobby) => {
+    await lobby.connect();
+  }
+);
 
 const localState = createSlice({
   name: "localState",
@@ -58,6 +67,7 @@ const localState = createSlice({
     ) => ({
       id: action.payload.id,
       isServer: action.payload.isServer,
+      connected: false,
       // onlineUsers: [action.payload.publicKey],
       // joinRequests: [],
     }),
@@ -79,9 +89,13 @@ const localState = createSlice({
     leaveLobby: () => null,
   },
   extraReducers: (builder) =>
-    builder.addCase(createLobby.rejected, (state, action) => {
-      state && (state.error = action.error.message);
-    }),
+    builder
+      .addCase(createLobby.rejected, (state, action) => {
+        state && (state.error = action.error.message);
+      })
+      .addCase(connectToLobby.fulfilled, (state) => {
+        state && (state.connected = true);
+      }),
 });
 
 export const {

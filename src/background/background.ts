@@ -1,8 +1,12 @@
 import * as Comlink from "comlink";
 import { createBackgroundEndpoint, isMessagePort } from "comlink-extension";
 import { browser } from "webextension-polyfill-ts";
-import { savedLobbySelectors, claimSavedLobby, saveLobby } from "./store";
-import { initializeNetworking, NetworkFeed } from "./network";
+import {
+  savedLobbySelectors,
+  claimSavedLobby,
+  saveLobby,
+} from "./store/savedLobbies";
+import { initializeNetworking } from "./network";
 import BackgroundEndpoint from "./backgroundEndpoint";
 
 browser.runtime.onConnect.addListener((port) => {

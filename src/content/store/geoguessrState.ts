@@ -8,7 +8,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { RootState, leaveLobby } from ".";
-import { identitySelectors } from "../../background/store";
+import { identitySelectors } from "../../background/store/identities";
 import type { RemoteBackgroundEndpoint } from "../containers/BackgroundEndpointProvider";
 import { clientStateSelectors } from "./clientState";
 

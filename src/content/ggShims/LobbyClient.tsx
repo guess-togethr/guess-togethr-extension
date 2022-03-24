@@ -5,7 +5,7 @@ import {
   useBackgroundDispatch,
 } from "../storeHooks";
 import { makeStyles } from "@material-ui/core/styles";
-import { releaseSavedLobby } from "../../background/store";
+import { releaseSavedLobby } from "../../background/store/savedLobbies";
 import { selectUrl, redirect } from "../store";
 import { useGgGame } from "../hooks";
 

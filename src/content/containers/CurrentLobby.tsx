@@ -4,7 +4,7 @@ import {
   FullSavedLobby,
   releaseSavedLobby,
   updateSavedLobby,
-} from "../../background/store";
+} from "../../background/store/savedLobbies";
 import CurrentLobby, { CurrentLobbyProps } from "../components/CurrentLobby";
 import Shims from "../ggShims";
 import {

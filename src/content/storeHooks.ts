@@ -1,9 +1,8 @@
 import { createContext, useEffect } from "react";
 import { Action, AnyAction, Store } from "@reduxjs/toolkit";
-import {
+import type {
   BackgroundRootState,
   BackgroundDispatch,
-  savedLobbySelectors,
 } from "../background/store";
 import {
   createStoreHook,
@@ -24,6 +23,7 @@ import {
 import { useBackgroundEndpoint } from "./containers/BackgroundEndpointProvider";
 import { proxy } from "comlink";
 import { setTimeDelta } from "./store/geoguessrState";
+import { savedLobbySelectors } from "../background/store/savedLobbies";
 
 export const BackgroundStoreContext: any = createContext(null);
 

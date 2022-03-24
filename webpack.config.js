@@ -129,10 +129,11 @@ module.exports = ({ prod, dev }) => ({
           from: "./manifest.json",
           transform: function (content, path) {
             // generates the manifest file using the package.json informations
+            const pkg = require("./package.json");
             return Buffer.from(
               JSON.stringify({
-                description: process.env.npm_package_description,
-                version: process.env.npm_package_version,
+                description: pkg.description,
+                version: pkg.version,
                 ...JSON.parse(content.toString()),
               })
             );

@@ -11,10 +11,12 @@
     "devtools": "concurrently \"yarn react-devtools\" \"yarn remotedev --port 3030\""
   },
   "resolutions": {
-    "redux-thunk": "https://github.com/arseneyr/redux-thunk.git#978f2f16f6d670affc45426ee369377c6136da93",
-    "acorn": "github:arseneyr/acorn-with-stage3#wba-fix"
+    "redux-thunk": "https://github.com/arseneyr/redux-thunk.git#978f2f16f6d670affc45426ee369377c6136da93"
   },
   "dependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.12.1",
+    "@babel/plugin-proposal-optional-chaining": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
     "@babel/preset-typescript": "^7.12.1",
     "@geut/discovery-swarm-webrtc": "^4.0.1",
@@ -72,6 +74,7 @@
     "typescript-json-schema": "^0.42.0",
     "url-loader": "^4.1.0",
     "webextension-polyfill-ts": "^0.19.0",
+    "webpack": "^4",
     "webpack-bundle-analyzer": "^3.9.0",
     "webrtc-adapter": "^7.6.3"
   },
@@ -112,7 +115,6 @@
     "style-loader": "1.0.0",
     "ts-jest": "^26.4.1",
     "ts-node": "^9.0.0",
-    "webpack": "4.44.2",
     "webpack-cli": "3.3.10",
     "webpack-dev-server": "3.10.3",
     "write-file-webpack-plugin": "4.5.1"

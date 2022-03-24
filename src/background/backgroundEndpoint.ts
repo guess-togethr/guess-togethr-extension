@@ -1,12 +1,4 @@
-import {
-  createStore,
-  BackgroundStore,
-  BackgroundRootState,
-  releaseSavedLobby,
-  addIdentity,
-  unsafeIdentitySelectors,
-} from "./store";
-import { TabAwareStore, makeTabAwareStore, Expand } from "../utils";
+import { TabAwareStore, makeTabAwareStore } from "../utils";
 import { AnyAction } from "@reduxjs/toolkit";
 import { browser, WebNavigation } from "webextension-polyfill-ts";
 import { initializeNetworking, NetworkFeed, NetworkFeedOpts } from "./network";
@@ -14,6 +6,9 @@ import equal from "fast-deep-equal";
 import * as Comlink from "comlink";
 import { TimerHandle, clearTimer, setTimer } from "./timer";
 import { generateNoiseKeypair } from "../crypto";
+import createStore, { BackgroundRootState, BackgroundStore } from "./store";
+import { addIdentity, unsafeIdentitySelectors } from "./store/identities";
+import { releaseSavedLobby } from "./store/savedLobbies";
 
 const debug = require("debug")("background-endpoint");
 

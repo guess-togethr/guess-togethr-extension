@@ -32,11 +32,12 @@ if (copyPluginIndex !== -1) {
           // `script-src 'self' ${config.output.publicPath}; object-src 'self'`;
 
           // generates the manifest file using the package.json informations
+          const pkg = require("../package.json");
           return Buffer.from(
             JSON.stringify(
               {
-                description: process.env.npm_package_description,
-                version: process.env.npm_package_version,
+                description: pkg.description,
+                version: pkg.version,
                 ...manifest,
                 content_security_policy,
               },

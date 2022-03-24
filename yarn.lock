@@ -3939,26 +3939,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn-base@npm:acorn@^7.3.1":
-  version: 7.4.1
-  resolution: "acorn@npm:7.4.1"
-  bin:
-    acorn: bin/acorn
-  checksum: 2bde98c28c1be9a08e41e581179b776b43396c9486ce52b2b9848d73c53df38c516b7edba4bacdc84cabc9d7a3299f3b46ef240ae261c38dbf8ddd89f635bd32
-  languageName: node
-  linkType: hard
-
-"acorn-class-fields@npm:^0.3.7":
-  version: 0.3.7
-  resolution: "acorn-class-fields@npm:0.3.7"
-  dependencies:
-    acorn-private-class-elements: ^0.2.7
-  peerDependencies:
-    acorn: ^6 || ^7 || ^8
-  checksum: 293aafcb03cbc224e7c2c5352f9980f1bff0565681c47074c90b82171514f9d42b928f32c8010c19a6afe5af2881458ef67e1cbcdd6f4062dd38e1bf3a825b6d
-  languageName: node
-  linkType: hard
-
 "acorn-globals@npm:^6.0.0":
   version: 6.0.0
   resolution: "acorn-globals@npm:6.0.0"
@@ -3978,70 +3958,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn-logical-assignment@npm:^0.1.4":
-  version: 0.1.4
-  resolution: "acorn-logical-assignment@npm:0.1.4"
-  peerDependencies:
-    acorn: ^6 || ^7 || ^8
-  checksum: 27146e907a45b14be13b9884119cec35339458f9f17ebd4f0d00e902db2b2b97cf102eff63a7691aca80512d95022e0eaf4952aa9120cbe59c390c611168cba3
-  languageName: node
-  linkType: hard
-
-"acorn-numeric-separator@npm:^0.3.6":
-  version: 0.3.6
-  resolution: "acorn-numeric-separator@npm:0.3.6"
-  peerDependencies:
-    acorn: ^6 || ^7 || ^8
-  checksum: cc6f801804aa9859b034790d0d46ccd58d96793d8f2a3b1454c303fcb16b634cb630da9b1ea121066bdcf6b50d207a0f5f63642eeeddf4deef2a85b613b5c5bd
-  languageName: node
-  linkType: hard
-
-"acorn-private-class-elements@npm:^0.2.7":
-  version: 0.2.7
-  resolution: "acorn-private-class-elements@npm:0.2.7"
-  peerDependencies:
-    acorn: ^6.1.0 || ^7 || ^8
-  checksum: fd6edc936a30c28622ce30dedaedc815ba64c845219bbf0b965b44466d4a0c8c3e8c02037085c9eecf4ffff5179441c8e0639689164735b24d30c61a70fbb351
-  languageName: node
-  linkType: hard
-
-"acorn-private-methods@npm:^0.3.3":
-  version: 0.3.3
-  resolution: "acorn-private-methods@npm:0.3.3"
-  dependencies:
-    acorn-private-class-elements: ^0.2.7
-  peerDependencies:
-    acorn: ^6 || ^7 || ^8
-  checksum: dac318d03bfd104a0594c056a7aaa37386d7b08c2c72a7aa8d06e1c7b71c47888696db533a1e04e997d078bbba4e49b39561af4b0be8e4e5f08eb5ff971f15a1
-  languageName: node
-  linkType: hard
-
-"acorn-stage3@npm:^3.0.0":
-  version: 3.1.0
-  resolution: "acorn-stage3@npm:3.1.0"
-  dependencies:
-    acorn-class-fields: ^0.3.7
-    acorn-logical-assignment: ^0.1.4
-    acorn-numeric-separator: ^0.3.6
-    acorn-private-methods: ^0.3.3
-    acorn-static-class-features: ^0.2.4
-  peerDependencies:
-    acorn: ^7 || ^8
-  checksum: 66b806399a6bbc619a9a67d977fe6cc441a6db7c413cc23c3e9e9ec7d887c969220bac57a5cfd0925222b722d27d82ca232d9af90cc4ec609d83376dd149cbe3
-  languageName: node
-  linkType: hard
-
-"acorn-static-class-features@npm:^0.2.4":
-  version: 0.2.4
-  resolution: "acorn-static-class-features@npm:0.2.4"
-  dependencies:
-    acorn-private-class-elements: ^0.2.7
-  peerDependencies:
-    acorn: ^6.1.0 || ^7 || ^8
-  checksum: 432363817de3b8792e652f72f38230fe72d19fd34efa701b01b8f966622c97be3d64d2310f24468b76f11d4495b019b33e027d9618d9a941c94d5e7f91bd13bd
-  languageName: node
-  linkType: hard
-
 "acorn-walk@npm:^7.1.1":
   version: 7.2.0
   resolution: "acorn-walk@npm:7.2.0"
@@ -4049,13 +3965,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn@github:arseneyr/acorn-with-stage3#wba-fix, acorn@https://github.com/arseneyr/acorn-with-stage3.git#commit=73cdc98a8939eec674e9117ae55654687365da25":
-  version: 1.0.1
-  resolution: "acorn@https://github.com/arseneyr/acorn-with-stage3.git#commit=73cdc98a8939eec674e9117ae55654687365da25"
-  dependencies:
-    acorn-base: "npm:acorn@^7.3.1"
-    acorn-stage3: ^3.0.0
-  checksum: 2920b3505cc317caf336f588412912320af55078f77fca02cf1b0af0ab402b4dcac5a4110eb605c6e3965ff9e05c9b1298c694088222e7a8dff0ddf971508538
+"acorn@npm:^6.4.1":
+  version: 6.4.2
+  resolution: "acorn@npm:6.4.2"
+  bin:
+    acorn: bin/acorn
+  checksum: ec4707ffa0f41dcd9ef67e5f0938a9e8c83f2f1ffcbd3588b07126833d2ca3a6573e094c511162ad40f658a267c6533c6dd5eedead6844d50f7d8d0be080cc55
+  languageName: node
+  linkType: hard
+
+"acorn@npm:^7.1.1, acorn@npm:^7.4.0":
+  version: 7.4.1
+  resolution: "acorn@npm:7.4.1"
+  bin:
+    acorn: bin/acorn
+  checksum: 2bde98c28c1be9a08e41e581179b776b43396c9486ce52b2b9848d73c53df38c516b7edba4bacdc84cabc9d7a3299f3b46ef240ae261c38dbf8ddd89f635bd32
   languageName: node
   linkType: hard
 
@@ -9094,6 +9018,9 @@ fsevents@^1.2.7:
   resolution: "guess-togethr@workspace:."
   dependencies:
     "@babel/core": 7.12.3
+    "@babel/plugin-proposal-class-properties": ^7.12.1
+    "@babel/plugin-proposal-nullish-coalescing-operator": ^7.12.1
+    "@babel/plugin-proposal-optional-chaining": ^7.12.1
     "@babel/preset-env": ^7.12.1
     "@babel/preset-react": 7.12.1
     "@babel/preset-typescript": ^7.12.1
@@ -9186,7 +9113,7 @@ fsevents@^1.2.7:
     typescript-json-schema: ^0.42.0
     url-loader: ^4.1.0
     webextension-polyfill-ts: ^0.19.0
-    webpack: 4.44.2
+    webpack: ^4
     webpack-bundle-analyzer: ^3.9.0
     webpack-cli: 3.3.10
     webpack-dev-server: 3.10.3
@@ -18202,7 +18129,7 @@ typescript@^4.0.3:
   languageName: node
   linkType: hard
 
-"webpack@npm:4.44.2":
+webpack@^4:
   version: 4.44.2
   resolution: "webpack@npm:4.44.2"
   dependencies:

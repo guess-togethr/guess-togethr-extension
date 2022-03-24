@@ -14,7 +14,7 @@ import {
   savedLobbySelectors,
   saveLobby,
   updateSavedLobby,
-} from "../../background/store";
+} from "../../background/store/savedLobbies";
 import CreateNew from "../components/CreateNew";
 import Dropdown from "../components/Dropdown";
 import LobbyError from "../components/LobbyError";
